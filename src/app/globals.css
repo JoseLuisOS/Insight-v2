@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   Intersel Insight — design tokens.
+   Brand accent: #4377BC. Semantic tokens (never hardcode colors in components).
+   ============================================================================ */
+:root {
+  /* Brand scale (azul Intersel) */
+  --brand-50: #eaf1fa;
+  --brand-100: #d6e3f5;
+  --brand-200: #adc7ea;
+  --brand-300: #84abdf;
+  --brand-400: #6b97ce;
+  --brand-500: #4377bc; /* primary accent */
+  --brand-600: #2e5a98;
+  --brand-700: #244873;
+  --brand-800: #1a344f;
+  --brand-900: #11212f;
+
+  /* Functional (accessible) */
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #b91c1c;
+
+  /* Semantic surfaces (light) */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: var(--brand-500);
+  --primary: var(--brand-500);
+  --primary-foreground: #ffffff;
+}
+
+.light {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: var(--brand-500);
+  --primary: var(--brand-500);
+  --primary-foreground: #ffffff;
+}
+
+.dark {
+  --background: #0b1220;
+  --foreground: #e2e8f0;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --card: #0f172a;
+  --card-foreground: #e2e8f0;
+  --border: #1e293b;
+  --input: #1e293b;
+  --ring: var(--brand-400);
+  --primary: var(--brand-400);
+  --primary-foreground: #0b1220;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: #0b1220;
+    --foreground: #e2e8f0;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+    --card: #0f172a;
+    --card-foreground: #e2e8f0;
+    --border: #1e293b;
+    --input: #1e293b;
+    --ring: var(--brand-400);
+    --primary: var(--brand-400);
+    --primary-foreground: #0b1220;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
