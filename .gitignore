@@ -38,6 +38,9 @@ yarn-error.log*
 /logs/*.log
 /logs/*.tmp
 
+# dev-local.py runtime state (PID file + server log)
+/logs/dev-local/
+
 # vercel
 .vercel
 
