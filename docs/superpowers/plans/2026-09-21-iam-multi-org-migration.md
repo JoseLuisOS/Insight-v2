@@ -610,18 +610,30 @@ git commit -m "feat(db): add organization_id to survey_* tables, backfilled to H
 
 **Interfaces:**
 - Consumes: `organization_id` columns from Task 2/4; `platform.iam_organization_memberships`, `platform.iam_platform_admins`.
-- Produces: schema `private` with `private.is_platform_admin()` and `private.active_organization_ids()`; RLS enabled + forced, **and matching `GRANT`s**, on every `platform.*` and `intersel_insight.survey_*` table. Task 6's test exercises exactly these policies.
+- Produces: schema `private` with `private.is_platform_admin()` and `private.active_organization_ids()`; RLS **enabled** (not forced), **and matching `GRANT`s**, on every `platform.*` and `intersel_insight.survey_*` table. Task 6's test exercises exactly these policies.
+
+**Correction made while executing this task (kept here so the plan matches reality):** the first draft used `FORCE ROW LEVEL SECURITY`. That also strips the table *owner*'s normal RLS bypass — and `intersel_insight_app` (our own migration/seed role) owns every one of these tables, so `FORCE` locked our own tooling out (`scripts/_verify_seed.sql --app` went from real counts to all zeros). Fixed to plain `ENABLE`/`NO FORCE`: policies still fully restrict the `authenticated` role (real end users, via PostgREST), while the owning role keeps unrestricted access for migrations/seeding — the same bypass-by-owner behavior Supabase's own `service_role` relies on.
 
 - [ ] **Step 1: Write the RLS migration**
 
 ```sql
 -- scripts/006_rls_layer1.sql
 -- Intersel Insight — RLS layer 1: organization isolation only (spec §22-§23).
--- Runs via --app (doesn't touch auth.users; only reads auth.uid()/auth.jwt(),
--- which needs no schema-auth USAGE). Idempotent (drop-then-create policies,
--- GRANTs are naturally idempotent).
+-- MUST run via the ADMIN connection: CREATE SCHEMA requires CREATE privilege
+-- on the database itself, which intersel_insight_app deliberately doesn't
+-- have. Idempotent (drop-then-create policies, GRANTs are naturally
+-- idempotent).
+
+do $$
+begin
+  begin
+    grant intersel_insight_app to postgres;
+  exception when duplicate_object or others then null;
+  end;
+end $$;
 
 create schema if not exists private;
+alter schema private owner to intersel_insight_app;
 revoke all on schema private from public;
 
 create or replace function private.is_platform_admin()
@@ -664,7 +676,7 @@ grant usage on schema intersel_insight to authenticated;
 -- platform.core_organizations — isolation is "is this MY org", by id.
 -- ------------------------------------------------------------
 alter table platform.core_organizations enable row level security;
-alter table platform.core_organizations force row level security;
+alter table platform.core_organizations no force row level security;
 drop policy if exists org_isolation on platform.core_organizations;
 create policy org_isolation on platform.core_organizations
   for all to authenticated
@@ -676,7 +688,7 @@ grant select, insert, update, delete on platform.core_organizations to authentic
 -- platform.core_user_profiles — a user sees/edits their own profile only.
 -- ------------------------------------------------------------
 alter table platform.core_user_profiles enable row level security;
-alter table platform.core_user_profiles force row level security;
+alter table platform.core_user_profiles no force row level security;
 drop policy if exists own_profile on platform.core_user_profiles;
 create policy own_profile on platform.core_user_profiles
   for all to authenticated
@@ -689,7 +701,7 @@ grant select, insert, update, delete on platform.core_user_profiles to authentic
 -- nobody self-service-writes it (no INSERT/UPDATE/DELETE grant here at all).
 -- ------------------------------------------------------------
 alter table platform.iam_platform_admins enable row level security;
-alter table platform.iam_platform_admins force row level security;
+alter table platform.iam_platform_admins no force row level security;
 drop policy if exists platform_admins_read on platform.iam_platform_admins;
 create policy platform_admins_read on platform.iam_platform_admins
   for select to authenticated
@@ -705,7 +717,7 @@ declare v_table text;
 begin
   foreach v_table in array array['iam_organization_memberships', 'iam_roles', 'iam_resources'] loop
     execute format('alter table platform.%I enable row level security', v_table);
-    execute format('alter table platform.%I force row level security', v_table);
+    execute format('alter table platform.%I no force row level security', v_table);
     execute format('drop policy if exists org_isolation on platform.%I', v_table);
     execute format(
       'create policy org_isolation on platform.%I for all to authenticated ' ||
@@ -721,7 +733,7 @@ end $$;
 -- iam_membership_roles — org isolation via its membership's org.
 -- ------------------------------------------------------------
 alter table platform.iam_membership_roles enable row level security;
-alter table platform.iam_membership_roles force row level security;
+alter table platform.iam_membership_roles no force row level security;
 drop policy if exists org_isolation on platform.iam_membership_roles;
 create policy org_isolation on platform.iam_membership_roles
   for all to authenticated
@@ -745,7 +757,7 @@ grant select, insert, update, delete on platform.iam_membership_roles to authent
 -- iam_role_permissions — org isolation via its role's org.
 -- ------------------------------------------------------------
 alter table platform.iam_role_permissions enable row level security;
-alter table platform.iam_role_permissions force row level security;
+alter table platform.iam_role_permissions no force row level security;
 drop policy if exists org_isolation on platform.iam_role_permissions;
 create policy org_isolation on platform.iam_role_permissions
   for all to authenticated
@@ -763,7 +775,7 @@ grant select, insert, update, delete on platform.iam_role_permissions to authent
 -- iam_user_permission_overrides — org isolation via its membership's org.
 -- ------------------------------------------------------------
 alter table platform.iam_user_permission_overrides enable row level security;
-alter table platform.iam_user_permission_overrides force row level security;
+alter table platform.iam_user_permission_overrides no force row level security;
 drop policy if exists org_isolation on platform.iam_user_permission_overrides;
 create policy org_isolation on platform.iam_user_permission_overrides
   for all to authenticated
@@ -787,7 +799,7 @@ grant select, insert, update, delete on platform.iam_user_permission_overrides t
 -- iam_resource_permissions — org isolation via its resource's org.
 -- ------------------------------------------------------------
 alter table platform.iam_resource_permissions enable row level security;
-alter table platform.iam_resource_permissions force row level security;
+alter table platform.iam_resource_permissions no force row level security;
 drop policy if exists org_isolation on platform.iam_resource_permissions;
 create policy org_isolation on platform.iam_resource_permissions
   for all to authenticated
@@ -811,7 +823,7 @@ declare v_table text;
 begin
   foreach v_table in array array['iam_modules', 'iam_permissions'] loop
     execute format('alter table platform.%I enable row level security', v_table);
-    execute format('alter table platform.%I force row level security', v_table);
+    execute format('alter table platform.%I no force row level security', v_table);
     execute format('drop policy if exists catalog_read on platform.%I', v_table);
     execute format('create policy catalog_read on platform.%I for select to authenticated using (true)', v_table);
     execute format('grant select on platform.%I to authenticated', v_table);
@@ -835,7 +847,7 @@ declare
 begin
   foreach v_table in array v_tables loop
     execute format('alter table intersel_insight.%I enable row level security', v_table);
-    execute format('alter table intersel_insight.%I force row level security', v_table);
+    execute format('alter table intersel_insight.%I no force row level security', v_table);
     execute format('drop policy if exists org_isolation on intersel_insight.%I', v_table);
     execute format(
       'create policy org_isolation on intersel_insight.%I for all to authenticated ' ||
@@ -847,19 +859,20 @@ begin
   end loop;
 end $$;
 
-select schemaname, tablename, rowsecurity, forcerowsecurity
-from pg_tables t
-where t.schemaname in ('platform', 'intersel_insight')
+select n.nspname as schemaname, c.relname as tablename, c.relrowsecurity, c.relforcerowsecurity
+from pg_class c
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname in ('platform', 'intersel_insight') and c.relkind = 'r'
 order by 1, 2;
 ```
 
-- [ ] **Step 2: Run it**
+- [ ] **Step 2: Run it (admin connection — creates schema `private`)**
 
 ```bash
-node scripts/run-sql.js scripts/006_rls_layer1.sql --app
+node scripts/run-sql.js scripts/006_rls_layer1.sql
 ```
 
-Expected: every listed table has `rowsecurity = t` and `forcerowsecurity = t`, then `OK: ...`.
+Expected: every listed table has `relrowsecurity = true` and `relforcerowsecurity = false`, then `OK: ...`.
 
 - [ ] **Step 3: Sanity-check `intersel_insight_app` itself isn't blocked**
 
@@ -867,7 +880,7 @@ Expected: every listed table has `rowsecurity = t` and `forcerowsecurity = t`, t
 node scripts/run-sql.js scripts/_verify_seed.sql --app   # reuse Task 3's Step 3 file
 ```
 
-Expected: same counts as before. `FORCE ROW LEVEL SECURITY` does apply to the table owner, but these policies are scoped `to authenticated` — the raw `psql`/`pg` session here is neither `anon` nor `authenticated` (it's `intersel_insight_app` directly, with no policy targeting it), so it reads via ordinary owner privilege, unaffected. This confirms our migration/admin tooling keeps working before Task 6's simulated end-user test.
+Expected: same counts as before (Task 3's Step 3: `orgs=1, modules=6, permissions=24, roles=5, role_permissions=65`). RLS is enabled but **not forced**, so the table owner (`intersel_insight_app`, connecting directly here) bypasses it entirely per ordinary Postgres semantics — only the `to authenticated` policies apply, and only to sessions actually holding that role (real end users via PostgREST). This confirms our migration/admin tooling keeps working before Task 6's simulated end-user test.
 
 - [ ] **Step 4: Note the manual Data API step (not SQL-controllable)**
 
