@@ -16,9 +16,10 @@ export const metadata: Metadata = {
   title: "Intersel Insight",
   description:
     "Plataforma multi-tenant para crear, visualizar y publicar dashboards.",
-  icons: {
-    icon: "/images/brand/favicon_intersel.png",
-  },
+  // Icons come from the src/app/favicon.ico + icon.png file convention
+  // (Next.js auto-generates the <link> tags for both) — no manual
+  // metadata.icons here, that produced a duplicate/conflicting <link>
+  // alongside the convention-based one.
 };
 
 export default function RootLayout({

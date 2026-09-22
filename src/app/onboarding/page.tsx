@@ -1,5 +1,6 @@
+import Image from "next/image";
 import { redirect } from "next/navigation";
-import { Brand } from "@/components/brand";
+import { AuthBackdrop } from "@/components/auth-backdrop";
 import { SubmitButton } from "@/components/submit-button";
 import { createClient } from "@/lib/supabase/server";
 import { createFirstOrganization } from "./actions";
@@ -30,29 +31,37 @@ export default async function OnboardingPage({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted px-4">
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#050b18] px-4 text-white">
+      <AuthBackdrop />
+
+      <div className="relative z-10 w-full max-w-md animate-[fade-in_0.6s_ease-out] rounded-2xl border border-white/10 bg-white/[0.06] p-8 shadow-[0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
         <div className="mb-6 flex justify-center">
-          <Brand className="text-lg" />
+          <Image
+            src="/images/brand/logo-intersel.webp"
+            alt="Intersel"
+            width={208}
+            height={132}
+            className="h-9 w-auto"
+          />
         </div>
-        <h1 className="mb-1 text-center text-xl font-semibold text-card-foreground">
+        <h1 className="text-center text-2xl font-semibold tracking-tight text-white">
           Crea la primera organización
         </h1>
-        <p className="mb-6 text-center text-sm text-muted-foreground">
+        <p className="mt-1.5 text-center text-sm text-white/60">
           Todavía no existe ninguna. Como sysadmin, puedes crear esta —
           serás su Owner. Las siguientes organizaciones se crearán desde un
           gestor dedicado (próximamente), no desde aquí.
         </p>
 
         {error && (
-          <p className="mb-4 rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">
+          <p className="mt-5 rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">
             {error}
           </p>
         )}
 
-        <form action={createFirstOrganization} className="space-y-4">
+        <form action={createFirstOrganization} className="mt-7 space-y-4">
           <div>
-            <label htmlFor="organization_name" className="mb-1 block text-sm font-medium">
+            <label htmlFor="organization_name" className="mb-1.5 block text-sm font-medium text-white/80">
               Nombre de la organización
             </label>
             <input
@@ -60,13 +69,14 @@ export default async function OnboardingPage({
               name="organization_name"
               type="text"
               required
+              autoFocus
               placeholder="Hermosillo ¿Cómo Vamos?"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              className="auth-input px-3 py-2.5 text-sm"
             />
           </div>
           <SubmitButton
             pendingLabel="Creando..."
-            className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+            className="w-full rounded-lg bg-gradient-to-b from-brand-400 to-brand-600 px-3 py-2.5 text-sm font-medium text-white shadow-[0_4px_14px_rgba(67,119,188,0.28)] transition hover:shadow-[0_4px_18px_rgba(67,119,188,0.4)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-80"
           >
             Crear y continuar
           </SubmitButton>

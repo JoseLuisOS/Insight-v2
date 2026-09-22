@@ -22,7 +22,7 @@ export default async function LoginPage({
       <AuthBackdrop />
 
       {/* Content */}
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-16 px-6 py-12 sm:px-10 lg:flex-row lg:items-center lg:justify-between lg:gap-8 lg:px-16">
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-16 px-6 py-12 sm:px-10 lg:flex-row lg:items-center lg:justify-center lg:gap-20 lg:px-16 xl:gap-28">
         {/* Login — izquierda */}
         <div className="order-2 w-full max-w-sm animate-[fade-in_0.6s_ease-out] lg:order-1">
           <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-8 shadow-[0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
@@ -66,7 +66,7 @@ export default async function LoginPage({
                     required
                     autoComplete="email"
                     autoFocus
-                    className="w-full rounded-lg border border-white/15 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-brand-300/60 focus:bg-white/[0.08] focus:ring-2 focus:ring-brand-300/30"
+                    className="auth-input py-2.5 pl-9 pr-3 text-sm"
                   />
                 </div>
               </div>
@@ -90,13 +90,13 @@ export default async function LoginPage({
                     type="password"
                     required
                     autoComplete="current-password"
-                    className="w-full rounded-lg border border-white/15 bg-white/[0.04] py-2.5 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-brand-300/60 focus:bg-white/[0.08] focus:ring-2 focus:ring-brand-300/30"
+                    className="auth-input py-2.5 pl-9 pr-3 text-sm"
                   />
                 </div>
               </div>
               <SubmitButton
                 pendingLabel="Verificando..."
-                className="w-full rounded-lg bg-gradient-to-b from-brand-400 to-brand-600 px-3 py-2.5 text-sm font-medium text-white shadow-[0_4px_20px_rgba(67,119,188,0.45)] transition hover:shadow-[0_4px_28px_rgba(67,119,188,0.65)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-80"
+                className="w-full rounded-lg bg-gradient-to-b from-brand-400 to-brand-600 px-3 py-2.5 text-sm font-medium text-white shadow-[0_4px_14px_rgba(67,119,188,0.28)] transition hover:shadow-[0_4px_18px_rgba(67,119,188,0.4)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-80"
               >
                 Entrar
               </SubmitButton>
@@ -112,15 +112,21 @@ export default async function LoginPage({
         </div>
 
         {/* Comercial — derecha */}
-        <div className="order-1 max-w-lg lg:order-2 lg:pl-8">
-          <Image
-            src="/images/brand/logo-intersel.webp"
-            alt="Intersel"
-            width={208}
-            height={132}
-            preload
-            className="h-11 w-auto"
-          />
+        <div className="order-1 max-w-lg lg:order-2">
+          <div className="flex items-center gap-4">
+            <Image
+              src="/images/brand/logo-intersel.webp"
+              alt="Intersel"
+              width={208}
+              height={132}
+              preload
+              className="h-14 w-auto"
+            />
+            <div className="h-8 w-px bg-white/20" />
+            <span className="text-lg font-semibold tracking-[0.2em] text-white/90">
+              INSIGHT
+            </span>
+          </div>
           <h2 className="mt-8 text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl">
             Convierte datos en decisiones.
           </h2>

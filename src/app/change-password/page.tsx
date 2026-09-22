@@ -40,7 +40,7 @@ export default async function ChangePasswordPage({
               minLength={8}
               autoComplete="new-password"
               autoFocus
-              className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-brand-300/60 focus:bg-white/[0.08] focus:ring-2 focus:ring-brand-300/30"
+              className="auth-input px-3 py-2.5 text-sm"
             />
           </div>
           <div>
@@ -54,12 +54,12 @@ export default async function ChangePasswordPage({
               required
               minLength={8}
               autoComplete="new-password"
-              className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-brand-300/60 focus:bg-white/[0.08] focus:ring-2 focus:ring-brand-300/30"
+              className="auth-input px-3 py-2.5 text-sm"
             />
           </div>
           <SubmitButton
             pendingLabel="Guardando..."
-            className="w-full rounded-lg bg-gradient-to-b from-brand-400 to-brand-600 px-3 py-2.5 text-sm font-medium text-white shadow-[0_4px_20px_rgba(67,119,188,0.45)] transition hover:shadow-[0_4px_28px_rgba(67,119,188,0.65)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-80"
+            className="w-full rounded-lg bg-gradient-to-b from-brand-400 to-brand-600 px-3 py-2.5 text-sm font-medium text-white shadow-[0_4px_14px_rgba(67,119,188,0.28)] transition hover:shadow-[0_4px_18px_rgba(67,119,188,0.4)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-80"
           >
             Guardar contraseña
           </SubmitButton>

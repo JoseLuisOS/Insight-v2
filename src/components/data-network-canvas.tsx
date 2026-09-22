@@ -10,7 +10,13 @@ type Particle = { x: number; y: number; vx: number; vy: number };
  * generic decorative effect. Pauses (renders one static frame) when the
  * viewer prefers reduced motion.
  */
-export function DataNetworkCanvas({ className = "" }: { className?: string }) {
+export function DataNetworkCanvas({
+  className = "",
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -90,5 +96,5 @@ export function DataNetworkCanvas({ className = "" }: { className?: string }) {
     };
   }, []);
 
-  return <canvas ref={canvasRef} aria-hidden className={className} />;
+  return <canvas ref={canvasRef} aria-hidden className={className} style={style} />;
 }

@@ -23,7 +23,17 @@ export function AuthBackdrop() {
         }}
       />
 
-      <DataNetworkCanvas className="pointer-events-none absolute inset-0 h-full w-full opacity-70" />
+      {/* Fades the node network out directly behind the centered content band
+          (form/message sit roughly in the vertical middle) while keeping it
+          fully visible at the top/bottom periphery — it was competing with
+          the text and form instead of just framing them. */}
+      <DataNetworkCanvas
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-70"
+        style={{
+          maskImage: "linear-gradient(to bottom, black 0%, black 14%, transparent 32%, transparent 68%, black 86%, black 100%)",
+          WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 14%, transparent 32%, transparent 68%, black 86%, black 100%)",
+        }}
+      />
     </>
   );
 }

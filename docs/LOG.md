@@ -1,5 +1,52 @@
 # Bitácora de desarrollo — Intersel Insight
 
+## 2026-09-22 (3) — Favicon real, reset para probar el flujo completo, pulido del login
+
+**Favicon seguía sin verse:** la causa era que `metadata.icons` (PNG vía `public/`) por sí solo
+no cubre la petición directa a `/favicon.ico` que hacen los navegadores independientemente del
+`<link>` — esa ruta daba 404 desde que borré el `favicon.ico` default de Next. Generado un
+`.ico` real (contenedor ICO con el PNG embebido — `sharp` no exporta `.ico` nativo) en
+`src/app/favicon.ico`, más `src/app/icon.png` — ambos por convención de Next (auto-genera los
+`<link>`, ya no `metadata.icons` manual). Si el navegador ya cacheó el ícono viejo, puede
+necesitar refresh forzado (Ctrl+Shift+R) o una ventana nueva — es un cache del navegador, no
+del server.
+
+**Reset completo para probar el flujo desde cero** (`scripts/reset_bootstrap_test.sql` +
+`scripts/reset_temp_password.js`, este último nuevo — para resetear la contraseña de una
+cuenta *existente*, a diferencia de `create_user.js` que es solo para cuentas nuevas):
+- Borrados: los 11 `survey_*` (datos demo de `scripts/002`, reproducibles), la organización
+  HCV y todo lo que colgaba de ella (memberships, roles, role_permissions) vía `ON DELETE
+  CASCADE`, y el `core_user_profiles` del sysadmin.
+- Preservado: `platform.iam_platform_admins` (sin eso nadie podría pasar nunca el check de
+  `bootstrap_first_organization()`), el catálogo `iam_modules`/`iam_permissions`.
+- `joseluis.o.santana@hotmail.com` reseteado a la contraseña temporal `Password$123` con
+  `must_change_password: true` de nuevo.
+- **Estado actual de la BD:** 0 organizaciones, 1 platform_admin, 0 datos de encuesta. Listo
+  para probar: login temporal → forzado a `/change-password` → (0 orgs + sysadmin) forzado a
+  `/onboarding` → crea la organización → `/dashboard`.
+
+**Pulido de UI del login** (a partir de una revisión de diseño detallada del usuario):
+- **Bug real, no decisión de diseño:** el campo Contraseña se veía casi blanco vs. el fondo
+  oscuro de Usuario — autofill de Chrome pintando su propio fondo, que `background` normal no
+  puede sobreescribir. Fix con el truco de `-webkit-box-shadow: 0 0 0 1000px <color> inset`,
+  cubriendo tanto `:-webkit-autofill` como el `:autofill` sin prefijo (Chrome reciente) como
+  reglas separadas. Centralizado en una clase `.auth-input` (antes cada input repetía la
+  cadena completa de utilidades) — reutilizada en login, change-password y onboarding.
+- Glow del botón reducido ~35% (`rgba(...,0.45)` → `0.28`, hover `0.65` → `0.4`).
+- Logo con más presencia (h-11 → h-14) + wordmark "INSIGHT" al lado (antes "Insight" solo
+  aparecía en el copy).
+- Bloques de login/mensaje acercados: `justify-between` → `justify-center` con `gap` explícito.
+- Máscara (`mask-image` en gradiente vertical) sobre `DataNetworkCanvas` — las constelaciones
+  se difuminan detrás del formulario/texto (banda central) y se mantienen visibles en los
+  bordes superior/inferior.
+- `/onboarding` migrado al mismo tema oscuro (`AuthBackdrop` + `.auth-input`) — antes se veía
+  con el card claro viejo, inconsistente justo en medio del flujo.
+
+**Verificado:** build de producción + lint limpios; campos Usuario/Contraseña visualmente
+idénticos en estado normal y foco, confirmado en el navegador tras el fix de autofill.
+
+---
+
 ## 2026-09-22 (2) — Favicon, feedback de carga, y fix del crash post-login
 
 **Reportado por el usuario:** favicon faltante; el botón de login no daba feedback; tras el

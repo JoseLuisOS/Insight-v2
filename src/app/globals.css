@@ -151,3 +151,54 @@ body {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* ============================================================================
+   Auth surfaces (login, change-password, onboarding-on-dark) — shared input
+   style, centralized so autofill can't make one field look like a different
+   component from its sibling (see the -webkit-autofill override below).
+   ============================================================================ */
+.auth-input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(255 255 255 / 0.15);
+  background: rgb(255 255 255 / 0.04);
+  color: #fff;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+.auth-input::placeholder {
+  color: rgb(255 255 255 / 0.3);
+}
+.auth-input:focus {
+  border-color: rgb(132 171 223 / 0.7); /* brand-300 */
+  box-shadow: 0 0 0 3px rgb(132 171 223 / 0.15), 0 0 12px rgb(132 171 223 / 0.25);
+}
+
+/* Chrome/Edge paint autofilled fields with their own opaque background
+   (usually a pale yellow/white) that CSS `background` can't override
+   directly — only this -webkit-box-shadow inset trick can. Without it, an
+   autofilled field visibly breaks from its un-autofilled sibling, reading
+   as a CSS bug rather than a design choice. Match .auth-input's own
+   background/text so autofill is invisible instead of jarring. The absurd
+   transition delay stops Chrome's own flash-to-yellow before this applies. */
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  -webkit-box-shadow: 0 0 0 1000px rgb(20 30 50) inset;
+  box-shadow: 0 0 0 1000px rgb(20 30 50) inset;
+  caret-color: #fff;
+  transition: background-color 9999s ease-in-out 0s;
+}
+/* Separate (not comma-combined with the -webkit- rule above): unrecognized
+   pseudo-classes in a comma list can invalidate the whole selector on some
+   engines. Recent Chrome/Edge also match the unprefixed :autofill. */
+.auth-input:autofill,
+.auth-input:autofill:hover,
+.auth-input:autofill:focus {
+  -webkit-text-fill-color: #fff;
+  -webkit-box-shadow: 0 0 0 1000px rgb(20 30 50) inset;
+  box-shadow: 0 0 0 1000px rgb(20 30 50) inset;
+  caret-color: #fff;
+  transition: background-color 9999s ease-in-out 0s;
+}
