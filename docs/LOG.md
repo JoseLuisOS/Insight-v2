@@ -1,5 +1,45 @@
 # Bitácora de desarrollo — Intersel Insight
 
+## 2026-09-22 — Login rediseñado (acceso privado, sin registro público) + cuenta del sysadmin
+
+**Contexto:** Intersel Insight es de acceso restringido — no hay registro público. Se rediseñó
+la página inicial como pantalla de login (elimina la landing de marketing/signup) y se
+provisionó la primera cuenta real (sysadmin) con contraseña temporal.
+
+**Hecho:**
+- **`/` y `/login` rediseñados**: ya no hay landing pública ni auto-registro (`signup` removido
+  de `login/actions.ts`); `/` solo redirige según sesión. Diseño oscuro "premium" con gradiente
+  azul animado, red de nodos (`DataNetworkCanvas`, canvas + `requestAnimationFrame`, respeta
+  `prefers-reduced-motion`), glow orbs a la deriva (CSS), tarjeta de login glassmorphic. Fondo
+  compartido en `src/components/auth-backdrop.tsx` (también usado por `/change-password` y
+  `/solicitar-acceso` para consistencia visual).
+- **Logo real de Intersel** (`public/images/brand/logo-intersel.webp`) integrado en
+  `src/components/brand.tsx` (nav de la app) y en la página de login — reemplaza el placeholder
+  "i" que dejó el entregable original.
+- **"Solicitar acceso"**: link placeholder (`/solicitar-acceso`), explícitamente no funcional
+  todavía — la app no es de registro público.
+- **Contraseña temporal forzada**: `scripts/create_user.js <email> <password>` crea el usuario
+  vía Admin API con `app_metadata.must_change_password: true`. El middleware (`proxy.ts`)
+  redirige a `/change-password` en cualquier ruta mientras el flag siga activo; la página de
+  cambio de contraseña limpia el flag con el cliente admin (`src/lib/supabase/admin.ts`,
+  service_role — nunca expuesto al cliente) después de `auth.updateUser`.
+- **Cuenta del sysadmin creada**: `joseluis.o.santana@hotmail.com`, contraseña temporal
+  `Password$123`. Bootstrap de `platform.iam_platform_admins` completado (estaba pendiente
+  desde la sesión anterior porque el `auth.users` no existía todavía). Verificado end-to-end en
+  el navegador: login con la temporal → redirige a `/change-password` → (la persona real debe
+  completar el cambio, no se hizo desde la sesión de Claude).
+
+**Estado:** login funcional y verificado. `/dashboard` post-login sigue mostrando datos vacíos
+(fix mínimo aplicado para que al menos no diga "Bienvenido a undefined") — sigue pendiente la
+migración del resto del frontend al modelo `platform`/organizaciones (ver
+`docs/ARQUITECTURA.md` §5).
+
+**Siguiente:** completar el cambio de contraseña real del sysadmin; migrar `/dashboard` y el
+resto de `src/app/(app)/*` al modelo de organizaciones; exponer `platform`/`intersel_insight`
+en Data API (Supabase dashboard) cuando el frontend necesite consultarlos vía `supabase-js`.
+
+---
+
 ## 2026-09-21 — Refactor a arquitectura multi-organización (IAM foundation)
 
 **Contexto:** el entregable original (`docs/PLAN.md`, tenant único, proyecto Supabase

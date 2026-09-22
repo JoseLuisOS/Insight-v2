@@ -1,11 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-
+/**
+ * Intersel Insight is provisioned per-person, not self-registered — there is
+ * no public signup. Accounts are created by an admin (see scripts/create_user.js),
+ * with a temporary password and `app_metadata.must_change_password: true`.
+ */
 export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
@@ -19,34 +21,10 @@ export async function login(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("id", user!.id)
-    .maybeSingle();
 
-  revalidatePath("/", "layout");
-  redirect(profile ? "/dashboard" : "/onboarding");
-}
-
-export async function signup(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { emailRedirectTo: `${SITE_URL}/auth/confirm` },
-  });
-  if (error) {
-    redirect(`/login?mode=signup&error=${encodeURIComponent(error.message)}`);
+  if (user?.app_metadata?.must_change_password) {
+    redirect("/change-password");
   }
 
-  // If email confirmation is disabled, a session is returned immediately.
-  if (data.session) {
-    revalidatePath("/", "layout");
-    redirect("/onboarding");
-  }
-  redirect("/login?message=check-email");
+  redirect("/dashboard");
 }

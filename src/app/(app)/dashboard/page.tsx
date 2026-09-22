@@ -26,7 +26,7 @@ export default async function DashboardPage() {
         Hola{profile?.display_name ? `, ${profile.display_name}` : ""} 👋
       </h1>
       <p className="mt-1 text-muted-foreground">
-        Bienvenido a {profile?.tenants?.name}. Este es tu panel de control.
+        Bienvenido a {profile?.tenants?.name ?? "Intersel Insight"}. Este es tu panel de control.
       </p>
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">

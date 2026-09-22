@@ -1,19 +1,16 @@
-/**
- * Intersel Insight wordmark. Placeholder until the official Intersel logo asset
- * is provided — drop it into /public and swap the mark here.
- */
+import Image from "next/image";
+
+/** Intersel wordmark, used in nav/header chrome across the app. */
 export function Brand({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-2 font-semibold ${className}`}>
-      <span
-        aria-hidden
-        className="grid h-7 w-7 place-items-center rounded-md bg-primary text-primary-foreground text-sm font-bold"
-      >
-        i
-      </span>
-      <span className="text-foreground">
-        Intersel <span className="text-primary">Insight</span>
-      </span>
+    <span className={`inline-flex items-center ${className}`}>
+      <Image
+        src="/images/brand/logo-intersel.webp"
+        alt="Intersel"
+        width={104}
+        height={66}
+        className="h-6 w-auto"
+      />
     </span>
   );
 }

@@ -39,6 +39,7 @@ export async function updateSession(request: NextRequest) {
   const isPublic =
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
+    pathname.startsWith("/solicitar-acceso") ||
     pathname.startsWith("/p/") || // public published pages
     pathname.startsWith("/join/") || // invite acceptance
     pathname === "/";
@@ -46,6 +47,20 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  // Accounts are admin-provisioned with a temporary password (no public
+  // signup — see src/app/login/actions.ts). Until it's changed, every
+  // authenticated route except the change-password page itself redirects
+  // there, so a temp password can't be used to browse the app.
+  if (
+    user?.app_metadata?.must_change_password &&
+    !pathname.startsWith("/change-password") &&
+    !pathname.startsWith("/auth")
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/change-password";
     return NextResponse.redirect(url);
   }
 
