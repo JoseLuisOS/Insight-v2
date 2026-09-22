@@ -36,11 +36,21 @@ conforme se libera cada pieza).
 ## Migraciones
 
 - `supabase/migrations/0001..0023` son de la arquitectura **abandonada** (tenant/PLAN.md).
-  No las apliques a `bkeiyculoypaisbpjvln`. Ver docs/ARQUITECTURA.md para dónde viven las
-  migraciones nuevas y con qué convención de nombres.
+  No las apliques a `bkeiyculoypaisbpjvln`.
+- La arquitectura nueva vive en `scripts/NNN_descripcion.sql` (continúa la numeración de
+  `001_initial_base_survey.sql`/`002_carga_survey_test.sql`, ya delivered), aplicados con
+  `node scripts/run-sql.js <archivo> [--app]` (sin `--app` = conexión admin `postgres`, con
+  `--app` = `intersel_insight_app`). Tests de aislamiento en `scripts/tests/`.
+- **Dos schemas, misma BD:** `platform` (`core_*`/`iam_*`, administración/IAM) e
+  `intersel_insight` (`survey_*` y futuros dominios de negocio). Ver docs/ARQUITECTURA.md §1-§3.
 - El schema `intersel_insight` ya tenía 11 tablas `survey_*` antes de este refactor (datos de
-  producción de encuestas). El cambio estructural las integra como dominio (`survey_*`) bajo
-  el nuevo modelo de organizaciones — no se reconstruyen desde cero.
+  producción de encuestas), ahora integradas como dominio bajo `platform.core_organizations`
+  vía `organization_id` — no se reconstruyeron.
+- **RLS:** habilitada pero sin `FORCE` en ninguna tabla — el rol dueño (`intersel_insight_app`)
+  necesita bypassear sus propias políticas para poder migrar/sembrar datos, igual que
+  `service_role` en un proyecto Supabase estándar. Las políticas `to authenticated` sí
+  restringen por completo a usuarios reales. RLS = solo aislamiento por organización; la
+  autorización por permiso vive en la capa de aplicación (spec `ARQUITECTURA_BBDD.md` §22-§23).
 
 ## Documentos, en orden de autoridad
 

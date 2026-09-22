@@ -1,5 +1,55 @@
 # Bitácora de desarrollo — Intersel Insight
 
+## 2026-09-21 — Refactor a arquitectura multi-organización (IAM foundation)
+
+**Contexto:** el entregable original (`docs/PLAN.md`, tenant único, proyecto Supabase
+`kytvxyjvnxamqdrhwezw`, 23 migraciones en `supabase/migrations/`) se reemplaza por el modelo
+**multi-organización** de [`ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md), sobre la base de
+datos real documentada en `.env` (proyecto ref `bkeiyculoypaisbpjvln`, ya en producción con 11
+tablas `survey_*` de encuestas). Ver [`docs/ARQUITECTURA.md`](ARQUITECTURA.md) — nueva fuente
+de verdad viva — y el plan ejecutado:
+[`docs/superpowers/plans/2026-09-21-iam-multi-org-migration.md`](superpowers/plans/2026-09-21-iam-multi-org-migration.md).
+
+**Hecho:**
+- **Rol maestro de BD** `intersel_insight_app` (no superusuario, `NOCREATEDB`/`NOCREATEROLE`/
+  `NOBYPASSRLS`), dueño de todo el contenido de la app — separado de `postgres` (admin,
+  solo para tareas puntuales de DBA). Verificado: puede CREATE/ALTER/DROP/CRUD, no puede
+  `CREATE DATABASE`.
+- **Despliegue local verificado**: `npm run dev` funciona contra el proyecto real (`/`,
+  `/login` en 200; rutas protegidas redirigen 307 sin crash del cliente Supabase). Claves API
+  en formato nuevo (`sb_publishable_...`/`sb_secret_...`), no las legacy JWT.
+- **Schema `platform`** (nuevo, separado de `intersel_insight`): `core_organizations`,
+  `core_user_profiles`, `iam_platform_admins`, `iam_organization_memberships`, `iam_roles`,
+  `iam_membership_roles`, `iam_modules`, `iam_permissions`, `iam_role_permissions`,
+  `iam_user_permission_overrides`, `iam_resources`, `iam_resource_permissions` — modelo RBAC +
+  overrides + ACL por recurso de `ARQUITECTURA_BBDD.md` §3–§15.
+- **Seed**: organización `hermosillo-como-vamos`, 6 módulos, 24 permisos, 5 roles preset con
+  permisos asignados. Sysadmin "god mode" objetivo: `joseluis.o.santana@hotmail.com` — **su
+  bootstrap quedó pendiente** (aún sin cuenta en Supabase Auth de este proyecto); re-correr
+  `scripts/004_iam_seed_hcv.sql` (idempotente) después de su primer login.
+- **`survey_*` integrado como dominio**: `organization_id` + FK a `platform.core_organizations`
+  en las 11 tablas, backfilled a la organización única.
+- **RLS capa 1** (solo aislamiento por organización, spec §22-§23 — la autorización por permiso
+  queda en la capa de aplicación) en las 23 tablas (`platform.*` + `intersel_insight.survey_*`),
+  con sus `GRANT` correspondientes a `authenticated` (RLS sola no basta sin el grant base — se
+  corrigió en el camino, faltaba también en `survey_*` desde antes de este refactor). Sin
+  `FORCE ROW LEVEL SECURITY` — el rol dueño necesita seguir operando sin que sus propias
+  políticas se lo bloqueen.
+- **Gate de aislamiento cross-organización**: `scripts/tests/001_iam_isolation_test.sql`
+  (transaccional, `rollback`) — `PASS`.
+- **Skill del proyecto** (`.claude/skills/insight-v2`), `README.md` y `docs/ARQUITECTURA.md`
+  (documento vivo + índice) creados/actualizados para reflejar el pivote.
+
+**Estado:** foundation IAM multi-organización lista y probada. Pendiente: bootstrap del
+sysadmin tras su primer login; exponer `platform` en Data API si el frontend lo consulta
+directo; autorización por permiso en la capa de aplicación (RLS no la cubre); revisar
+`src/lib/supabase/*` y queries que todavía asuman el modelo de tenant único de `PLAN.md`.
+
+**Siguiente:** decidir e implementar cómo el frontend (Next.js) consume el modelo de
+organizaciones (selector de organización activa, onboarding, permisos en UI).
+
+---
+
 ## 2026-06-28 — Documentación actualizada (MANUAL v1.1 + APRENDIZAJES)
 
 `docs/MANUAL.md` v1.1: mapas, edición de gráficas, export PDF (gráficas + dashboard), Postgres
