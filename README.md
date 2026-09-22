@@ -1,9 +1,16 @@
 # Intersel Insight
 
-Plataforma SaaS **multi-tenant** para crear, visualizar y **publicar** dashboards. Une la capa
-de análisis (datasets, SQL, dashboards con filtros) con una capa de publicación/embed de
-primera clase: cualquier gráfica o dashboard puede pasar de privado a embebible en un sitio
-externo con un flujo limpio, sobre infraestructura multi-tenant segura.
+Plataforma **multi-organización** de creación y visualización de dashboards. Una instalación
+puede alojar varias organizaciones (aislamiento lógico vía `organization_id`, no una BD por
+cliente); los usuarios son globales a la instalación y pueden pertenecer a una o varias
+organizaciones con roles distintos en cada una. Combina la capa de análisis (datasets, SQL,
+dashboards) con una capa de publicación/embed para gráficas publication-ready.
+
+> ⚠️ **En refactor activo (desde 2026-09-21).** El diseño original (multi-tenant clásico,
+> documentado en `docs/PLAN.md`) fue reemplazado por el modelo multi-organización de
+> [`ARQUITECTURA_BBDD.md`](ARQUITECTURA_BBDD.md). La fuente de verdad viva es
+> **[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)** — léelo antes de asumir nada del código o
+> de `docs/PLAN.md`.
 
 ## Stack
 
@@ -16,27 +23,32 @@ externo con un flujo limpio, sobre infraestructura multi-tenant segura.
 
 | Documento | Contenido |
 |---|---|
-| [docs/MANUAL.md](docs/MANUAL.md) | **Manual de configuración, uso y recomendaciones** |
-| [docs/PLAN.md](docs/PLAN.md) | **Fuente de verdad:** alcance, arquitectura, modelo de datos, seguridad, roadmap |
+| [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) | **Fuente de verdad viva** (índice) — BD, IAM, dominios, seguridad, despliegue |
+| [ARQUITECTURA_BBDD.md](ARQUITECTURA_BBDD.md) | Spec original del modelo IAM multi-organización que originó el refactor |
+| [docs/MANUAL.md](docs/MANUAL.md) | Manual de configuración, uso y recomendaciones |
+| [docs/PLAN.md](docs/PLAN.md) | *Legacy* — alcance/UI/stack siguen vigentes; modelo de datos y seguridad, no |
 | [docs/LOG.md](docs/LOG.md) | Bitácora cronológica de desarrollo |
 | [docs/APRENDIZAJES.md](docs/APRENDIZAJES.md) | Aprendizajes técnicos y del dominio |
 | [docs/DECISIONES.md](docs/DECISIONES.md) | Registro de decisiones (ADR ligero) |
 | [CLAUDE.md](CLAUDE.md) | Guía operativa para desarrollo asistido |
+| [.claude/skills/insight-v2](.claude/skills/insight-v2/SKILL.md) | Skill del proyecto: conexión de BD, qué es legacy, gotchas |
+
+## Base de datos
+
+Una sola base de datos Supabase para toda la instalación (proyecto ref `bkeiyculoypaisbpjvln`,
+documentado con credenciales en `.env`, gitignored — ver `.env.example` para las variables
+requeridas). Detalle de roles/permisos en [docs/ARQUITECTURA.md §1](docs/ARQUITECTURA.md#1-base-de-datos).
 
 ## Desarrollo
 
 ```bash
-cp .env.example .env.local   # y rellena los valores de Supabase
+cp .env.example .env   # rellena con los valores reales (pídeselos a otro miembro del equipo)
 npm install
-npm run dev                  # http://localhost:3000
+npm run dev             # http://localhost:3000
 ```
 
-## Seguridad (resumen)
-
-Dos rutas de ejecución asimétricas: la **interna autenticada** corre bajo RLS del usuario; la
-**pública/anónima** sólo sirve *snapshots* pre-computados con el tenant forzado del lado
-servidor. Aislamiento cross-tenant verificado por suite de tests (gate de CI). Detalle en
-[docs/PLAN.md](docs/PLAN.md) §3 y §6.
+Verificado funcionando (2026-09-21). Detalle en
+[docs/ARQUITECTURA.md §5](docs/ARQUITECTURA.md#5-frontend--despliegue-local).
 
 ---
 
