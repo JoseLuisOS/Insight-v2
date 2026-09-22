@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Brand } from "@/components/brand";
 import { getProfileContext } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({
   children,
@@ -10,7 +11,18 @@ export default async function AppLayout({
 }) {
   const { user, profile } = await getProfileContext();
   if (!user) redirect("/login");
-  if (!profile) redirect("/onboarding");
+
+  // Organizations are admin-assigned, not self-service (see
+  // docs/LOG.md 2026-09-22). The only case that still routes through
+  // /onboarding is a genuinely empty installation — zero organizations
+  // exist yet — and only for the platform admin who's allowed to bootstrap
+  // the first one. Everyone else goes straight into the app; per-route
+  // membership enforcement is separate, tracked work (docs/ARQUITECTURA.md §5).
+  const supabase = await createClient();
+  const { data: status } = await supabase.rpc("get_org_bootstrap_status");
+  if (status?.organization_count === 0 && status?.is_platform_admin) {
+    redirect("/onboarding");
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -83,10 +95,11 @@ export default async function AppLayout({
         <div className="flex items-center gap-4 text-sm">
           <div className="text-right">
             <div className="font-medium text-card-foreground">
-              {profile.tenants?.name ?? "—"}
+              {profile?.tenants?.name ?? "Intersel Insight"}
             </div>
             <div className="text-xs text-muted-foreground">
-              {profile.display_name ?? user.email} · {profile.role}
+              {profile?.display_name ?? user.email}
+              {profile?.role ? ` · ${profile.role}` : ""}
             </div>
           </div>
           <form action="/auth/signout" method="post">

@@ -141,6 +141,10 @@ body {
   50% { transform: translate(-3%, 5%) scale(1.1); }
 }
 
+@keyframes spin-cubes {
+  to { transform: rotateY(360deg) rotateX(360deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;

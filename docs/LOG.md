@@ -1,5 +1,48 @@
 # Bitácora de desarrollo — Intersel Insight
 
+## 2026-09-22 (2) — Favicon, feedback de carga, y fix del crash post-login
+
+**Reportado por el usuario:** favicon faltante; el botón de login no daba feedback; tras el
+primer cambio de contraseña la app "se quedó cargando" y solo entró con F5, aterrizando en
+"Crea tu organización" (que no debería ofrecerse a cualquiera).
+
+**Hecho:**
+- **Favicon real** (`public/images/brand/favicon_intersel.png`) vía `metadata.icons` en
+  `layout.tsx`. Se eliminó `src/app/favicon.ico` (el default de Next.js competía con el
+  nuestro — con los dos presentes, el navegador podía quedarse con el genérico).
+- **`SubmitButton`** (Client Component, `useFormStatus`) — muestra "Verificando..."/
+  "Guardando..." con un loader de cubos 3D (`CubeLoader`, tonos de la paleta `brand-*`) mientras
+  la Server Action está en curso. Usado en login, change-password y onboarding.
+- **`src/app/(app)/loading.tsx`** — boundary de carga de Next.js para el grupo `(app)`; ataca
+  directamente la sensación de "pantalla congelada" durante la navegación/compilación.
+- **Bug real encontrado y corregido:** `(app)/layout.tsx` redirigía a `/onboarding` para
+  *cualquier* usuario autenticado sin `profile` — y `profile` siempre es `null` ahora (la tabla
+  `profiles` es del esquema viejo). Con eso, *todo el mundo* caía en "Crea tu organización".
+  Además, esa pantalla nunca debía ofrecerse en general: crear una organización es una acción
+  de administrador, no de autoservicio (decisión del usuario, ver contexto abajo).
+- **`scripts/007_public_org_bootstrap_rpc.sql`**: dos funciones `SECURITY DEFINER` en
+  `public` (el único schema expuesto por el Data API — `platform`/`intersel_insight` siguen sin
+  exponerse, ver `docs/ARQUITECTURA.md` §2) que exponen justo lo necesario de `platform.*` sin
+  abrir todo el schema:
+  - `get_org_bootstrap_status()` → `{is_platform_admin, organization_count}` del usuario actual.
+  - `bootstrap_first_organization(name)` → crea la organización **solo si** `organization_count
+    = 0` **y** el caller es platform admin (la regla vive en la función, no solo en la UI).
+- **`(app)/layout.tsx`** y **`/onboarding`** reescritos para usar ese RPC: `/onboarding` sólo
+  se ofrece cuando de verdad no existe ninguna organización y quien mira es el sysadmin;
+  cualquier otro caso entra directo a `/dashboard`. Un gestor de organizaciones completo
+  (crear adicionales, asignar miembros) queda explícitamente para después.
+- Fix menor: `profile?.tenants?.name` etc. en `(app)/layout.tsx` ya no truena con `profile`
+  null (era exactamente el crash reportado, `Cannot read properties of null (reading 'tenants')`).
+
+**Verificado:** `npm run build` (producción) y `npm run lint` limpios; login → dashboard sin
+crash en el navegador; RPC probado con `set_config('request.jwt.claims', ...)` simulando al
+sysadmin (`is_platform_admin: true, organization_count: 1`).
+
+**Nota:** el usuario ya completó su cambio de contraseña real por su cuenta (fuera de esta
+sesión) — se confirmó vía `app_metadata.must_change_password: false` al investigar el bug.
+
+---
+
 ## 2026-09-22 — Login rediseñado (acceso privado, sin registro público) + cuenta del sysadmin
 
 **Contexto:** Intersel Insight es de acceso restringido — no hay registro público. Se rediseñó

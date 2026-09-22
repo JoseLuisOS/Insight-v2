@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AuthBackdrop } from "@/components/auth-backdrop";
+import { SubmitButton } from "@/components/submit-button";
 import { login } from "./actions";
 
 const FEATURES = [
@@ -93,12 +94,12 @@ export default async function LoginPage({
                   />
                 </div>
               </div>
-              <button
-                type="submit"
-                className="w-full rounded-lg bg-gradient-to-b from-brand-400 to-brand-600 px-3 py-2.5 text-sm font-medium text-white shadow-[0_4px_20px_rgba(67,119,188,0.45)] transition hover:shadow-[0_4px_28px_rgba(67,119,188,0.65)] hover:brightness-110"
+              <SubmitButton
+                pendingLabel="Verificando..."
+                className="w-full rounded-lg bg-gradient-to-b from-brand-400 to-brand-600 px-3 py-2.5 text-sm font-medium text-white shadow-[0_4px_20px_rgba(67,119,188,0.45)] transition hover:shadow-[0_4px_28px_rgba(67,119,188,0.65)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-80"
               >
                 Entrar
-              </button>
+              </SubmitButton>
             </form>
 
             <p className="mt-7 text-sm text-white/50">

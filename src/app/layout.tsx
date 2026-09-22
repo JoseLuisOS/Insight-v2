@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   title: "Intersel Insight",
   description:
     "Plataforma multi-tenant para crear, visualizar y publicar dashboards.",
+  icons: {
+    icon: "/images/brand/favicon_intersel.png",
+  },
 };
 
 export default function RootLayout({

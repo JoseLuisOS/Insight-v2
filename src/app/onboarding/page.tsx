@@ -1,18 +1,33 @@
 import { redirect } from "next/navigation";
 import { Brand } from "@/components/brand";
-import { getProfileContext } from "@/lib/auth";
-import { createTenant } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
+import { createClient } from "@/lib/supabase/server";
+import { createFirstOrganization } from "./actions";
 
+/**
+ * Only reachable when the installation has zero organizations AND the
+ * viewer is the platform admin — everyone else is routed elsewhere before
+ * they ever see this (src/app/(app)/layout.tsx). Organizations are
+ * otherwise admin-assigned, not self-service; a real organization manager
+ * is separate, later work (see docs/LOG.md 2026-09-22).
+ */
 export default async function OnboardingPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
-  const { user, profile } = await getProfileContext();
 
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  if (profile) redirect("/dashboard");
+
+  const { data: status } = await supabase.rpc("get_org_bootstrap_status");
+  if (!(status?.organization_count === 0 && status?.is_platform_admin)) {
+    redirect("/dashboard");
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted px-4">
@@ -21,10 +36,12 @@ export default async function OnboardingPage({
           <Brand className="text-lg" />
         </div>
         <h1 className="mb-1 text-center text-xl font-semibold text-card-foreground">
-          Crea tu organización
+          Crea la primera organización
         </h1>
         <p className="mb-6 text-center text-sm text-muted-foreground">
-          Este será tu espacio de trabajo. Tú serás el administrador.
+          Todavía no existe ninguna. Como sysadmin, puedes crear esta —
+          serás su Owner. Las siguientes organizaciones se crearán desde un
+          gestor dedicado (próximamente), no desde aquí.
         </p>
 
         {error && (
@@ -33,38 +50,26 @@ export default async function OnboardingPage({
           </p>
         )}
 
-        <form action={createTenant} className="space-y-4">
+        <form action={createFirstOrganization} className="space-y-4">
           <div>
-            <label htmlFor="tenant_name" className="mb-1 block text-sm font-medium">
+            <label htmlFor="organization_name" className="mb-1 block text-sm font-medium">
               Nombre de la organización
             </label>
             <input
-              id="tenant_name"
-              name="tenant_name"
+              id="organization_name"
+              name="organization_name"
               type="text"
               required
-              placeholder="Mi Empresa S.A. de C.V."
+              placeholder="Hermosillo ¿Cómo Vamos?"
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
-          <div>
-            <label htmlFor="display_name" className="mb-1 block text-sm font-medium">
-              Tu nombre <span className="text-muted-foreground">(opcional)</span>
-            </label>
-            <input
-              id="display_name"
-              name="display_name"
-              type="text"
-              placeholder="Arturo Díaz"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+          <SubmitButton
+            pendingLabel="Creando..."
+            className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
           >
             Crear y continuar
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </main>

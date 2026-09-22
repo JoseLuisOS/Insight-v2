@@ -1,4 +1,5 @@
 import { AuthBackdrop } from "@/components/auth-backdrop";
+import { SubmitButton } from "@/components/submit-button";
 import { changePassword } from "./actions";
 
 export default async function ChangePasswordPage({
@@ -56,12 +57,12 @@ export default async function ChangePasswordPage({
               className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-brand-300/60 focus:bg-white/[0.08] focus:ring-2 focus:ring-brand-300/30"
             />
           </div>
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-gradient-to-b from-brand-400 to-brand-600 px-3 py-2.5 text-sm font-medium text-white shadow-[0_4px_20px_rgba(67,119,188,0.45)] transition hover:shadow-[0_4px_28px_rgba(67,119,188,0.65)] hover:brightness-110"
+          <SubmitButton
+            pendingLabel="Guardando..."
+            className="w-full rounded-lg bg-gradient-to-b from-brand-400 to-brand-600 px-3 py-2.5 text-sm font-medium text-white shadow-[0_4px_20px_rgba(67,119,188,0.45)] transition hover:shadow-[0_4px_28px_rgba(67,119,188,0.65)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-80"
           >
             Guardar contraseña
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </main>
