@@ -1,5 +1,45 @@
 # Bitácora de desarrollo — Intersel Insight
 
+## 2026-09-23 — Módulo de perfil (nombre, contraseña, foto)
+
+**Decisión de almacenamiento para la foto de perfil:** Supabase Storage, no S3 ni disco del
+servidor. El usuario había subido credenciales S3 a `.env` (`STORAGE_ENDPOINT`/
+`STORAGE_ACCESS_KEY_ID`/`STORAGE_SECRETE_ACCESS_KEY`, comentario "Storage S3 Access Supabase")
+y pidió evaluar la mejor opción. Razones: (1) deploy target es Vercel (`CLAUDE.md`) — disco
+local no sobrevive entre invocaciones serverless, descartado de entrada; (2) esas credenciales
+S3 resultaron ser el endpoint S3-compatible **de la propia Supabase Storage**, no AWS externo —
+confirma que Supabase ya es la pieza correcta; (3) Storage usa la misma sesión de Auth ya
+existente vía RLS sobre `storage.objects`, sin credenciales nuevas que proteger. Las claves S3
+quedan sin usar en `.env` por si se necesitan más adelante para acceso directo/bulk.
+
+**Hecho:**
+- `scripts/008_public_profile_rpc.sql`: `public.get_my_profile()` / `public.update_my_profile()`
+  — a diferencia de las RPC de `scripts/007`, estas son `SECURITY INVOKER` (no `DEFINER`): no
+  hay privilegio que saltarse, `authenticated` ya tiene el GRANT + la política RLS
+  `own_profile` (scripts/006) ya restringe a la fila propia — la función solo necesita correr
+  como el rol que llama, no bypassear nada.
+- Bucket `avatars` (público, límite 2 MB, solo png/jpeg/webp) vía
+  `scripts/provision_avatars_bucket.js` + políticas RLS en `scripts/009_storage_avatars_policies.sql`
+  (cada quien solo escribe dentro de su propia carpeta `avatars/<user_id>/...`, lectura pública).
+- **`src/components/avatar-cropper.tsx`**: modal de recorte hecho a mano (canvas + pointer
+  events, sin dependencia nueva) — arrastrar para mover, slider para zoom, exporta un webp
+  512×512 fijo. Responde directamente a "la imagen... la tendremos que modificar respecto a
+  tamaño y el área que quedará para la visualización": el área visible es una elección de quien
+  sube la foto, no un center-crop automático ciego.
+- **`/profile`** (`src/app/(app)/profile/`): nombre + foto (`name-avatar-form.tsx`, upload a
+  Storage + RPC vía cliente browser) y contraseña (`password-form.tsx` + `actions.ts`, reusa
+  `auth.updateUser` como en el flujo de contraseña temporal, pero se queda en la página en vez
+  de redirigir). Enlazado desde el bloque de usuario en la esquina superior derecha del layout
+  de `(app)`.
+
+**Verificado:** RPCs probadas con JWT simulado (`set_config('request.jwt.claims', ...)`,
+rollback); bucket creado y listado; build de producción + lint limpios. La prueba en vivo en
+el navegador la completó el propio usuario en paralelo — confirmé por los logs del dev server
+que ya creó su organización ("Hermosillo ¿Cómo vamos?") y navegó por Charts/Datasets/Temas/
+Dashboard sin errores; no reseteo esa base de datos para no perderle su avance real.
+
+---
+
 ## 2026-09-22 (3) — Favicon real, reset para probar el flujo completo, pulido del login
 
 **Favicon seguía sin verse:** la causa era que `metadata.icons` (PNG vía `public/`) por sí solo

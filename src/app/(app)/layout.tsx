@@ -93,7 +93,7 @@ export default async function AppLayout({
           </nav>
         </div>
         <div className="flex items-center gap-4 text-sm">
-          <div className="text-right">
+          <Link href="/profile" className="text-right transition hover:opacity-70">
             <div className="font-medium text-card-foreground">
               {profile?.tenants?.name ?? "Intersel Insight"}
             </div>
@@ -101,7 +101,7 @@ export default async function AppLayout({
               {profile?.display_name ?? user.email}
               {profile?.role ? ` · ${profile.role}` : ""}
             </div>
-          </div>
+          </Link>
           <form action="/auth/signout" method="post">
             <button
               type="submit"
