@@ -11,16 +11,16 @@ BEGIN;
 -- survey_observations usa ON DELETE RESTRICT hacia la versión,
 -- por lo que eliminamos primero las observaciones del demo.
 -- ------------------------------------------------------------
-DELETE FROM intersel_insight.survey_observations o
-USING intersel_insight.survey_instrument_versions iv,
-      intersel_insight.survey_instruments i,
-      intersel_insight.survey_studies s
+DELETE FROM insight_survey.survey_observations o
+USING insight_survey.survey_instrument_versions iv,
+      insight_survey.survey_instruments i,
+      insight_survey.survey_studies s
 WHERE o.instrument_version_id = iv.id
   AND iv.instrument_id = i.id
   AND i.study_id = s.id
   AND s.code = 'DEMO_CIUDADANA';
 
-DELETE FROM intersel_insight.survey_studies
+DELETE FROM insight_survey.survey_studies
 WHERE code = 'DEMO_CIUDADANA';
 
 DO $$
@@ -103,7 +103,7 @@ BEGIN
     -- ========================================================
     -- 1. ESTUDIO / INSTRUMENTO / VERSIÓN
     -- ========================================================
-    INSERT INTO intersel_insight.survey_studies
+    INSERT INTO insight_survey.survey_studies
         (code, name, description, organization, metadata)
     VALUES
         ('DEMO_CIUDADANA',
@@ -113,7 +113,7 @@ BEGIN
          '{"purpose":"survey_engine_validation","synthetic":true}'::jsonb)
     RETURNING id INTO v_study;
 
-    INSERT INTO intersel_insight.survey_instruments
+    INSERT INTO insight_survey.survey_instruments
         (study_id, code, name, description, instrument_type, metadata)
     VALUES
         (v_study,
@@ -124,7 +124,7 @@ BEGIN
          '{"synthetic":true}'::jsonb)
     RETURNING id INTO v_instrument;
 
-    INSERT INTO intersel_insight.survey_instrument_versions
+    INSERT INTO insight_survey.survey_instrument_versions
         (instrument_id, version, name, status, valid_from, published_at, metadata)
     VALUES
         (v_instrument,
@@ -139,27 +139,27 @@ BEGIN
     -- ========================================================
     -- 2. SECCIONES
     -- ========================================================
-    INSERT INTO intersel_insight.survey_sections
+    INSERT INTO insight_survey.survey_sections
         (instrument_version_id, code, title, position)
     VALUES (v_version, 'DEMOGRAFIA', 'Datos demográficos', 1)
     RETURNING id INTO sec_demo;
 
-    INSERT INTO intersel_insight.survey_sections
+    INSERT INTO insight_survey.survey_sections
         (instrument_version_id, code, title, position)
     VALUES (v_version, 'PERCEPCION', 'Percepción ciudadana', 2)
     RETURNING id INTO sec_perception;
 
-    INSERT INTO intersel_insight.survey_sections
+    INSERT INTO insight_survey.survey_sections
         (instrument_version_id, code, title, position)
     VALUES (v_version, 'PROBLEMAS', 'Problemática de la ciudad', 3)
     RETURNING id INTO sec_problems;
 
-    INSERT INTO intersel_insight.survey_sections
+    INSERT INTO insight_survey.survey_sections
         (instrument_version_id, code, title, position)
     VALUES (v_version, 'DISCRIMINACION', 'Discriminación', 4)
     RETURNING id INTO sec_discrimination;
 
-    INSERT INTO intersel_insight.survey_sections
+    INSERT INTO insight_survey.survey_sections
         (instrument_version_id, code, title, position)
     VALUES (v_version, 'OPINION', 'Economía y opinión abierta', 5)
     RETURNING id INTO sec_opinion;
@@ -167,7 +167,7 @@ BEGIN
     -- ========================================================
     -- 3. P01 - EDAD
     -- ========================================================
-    INSERT INTO intersel_insight.survey_questions
+    INSERT INTO insight_survey.survey_questions
         (instrument_version_id, section_id, code, text, question_type,
          position, required, metadata)
     VALUES
@@ -175,7 +175,7 @@ BEGIN
          1, true, '{"min":18,"max":100}'::jsonb)
     RETURNING id INTO q_age;
 
-    INSERT INTO intersel_insight.survey_variables
+    INSERT INTO insight_survey.survey_variables
         (question_id, code, label, data_type, measurement_level, unit)
     VALUES
         (q_age, 'edad', 'Edad del participante', 'integer', 'ratio', 'years')
@@ -184,7 +184,7 @@ BEGIN
     -- ========================================================
     -- 4. P02 - GÉNERO
     -- ========================================================
-    INSERT INTO intersel_insight.survey_questions
+    INSERT INTO insight_survey.survey_questions
         (instrument_version_id, section_id, code, text, question_type,
          position, required)
     VALUES
@@ -192,28 +192,28 @@ BEGIN
          'single_choice', 2, true)
     RETURNING id INTO q_gender;
 
-    INSERT INTO intersel_insight.survey_variables
+    INSERT INTO insight_survey.survey_variables
         (question_id, code, label, data_type, measurement_level)
     VALUES
         (q_gender, 'genero', 'Género', 'categorical', 'nominal')
     RETURNING id INTO var_gender;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_gender, 'M', '1', 'Hombre', 1)
     RETURNING id INTO opt_gender_male;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_gender, 'F', '2', 'Mujer', 2)
     RETURNING id INTO opt_gender_female;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_gender, 'O', '3', 'Otro', 3)
     RETURNING id INTO opt_gender_other;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position, is_missing, missing_type)
     VALUES (q_gender, 'NR', '99', 'Prefiero no responder', 4, true, 'refused')
     RETURNING id INTO opt_gender_refused;
@@ -221,7 +221,7 @@ BEGIN
     -- ========================================================
     -- 5. P03 - SATISFACCIÓN 1..5
     -- ========================================================
-    INSERT INTO intersel_insight.survey_questions
+    INSERT INTO insight_survey.survey_questions
         (instrument_version_id, section_id, code, text, question_type,
          position, required, metadata)
     VALUES
@@ -230,14 +230,14 @@ BEGIN
          'scale', 1, true, '{"min":1,"max":5}'::jsonb)
     RETURNING id INTO q_satisfaction;
 
-    INSERT INTO intersel_insight.survey_variables
+    INSERT INTO insight_survey.survey_variables
         (question_id, code, label, data_type, measurement_level)
     VALUES
         (q_satisfaction, 'satisfaccion_ciudad',
          'Satisfacción con la ciudad', 'integer', 'ordinal')
     RETURNING id INTO var_satisfaction;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES
         (q_satisfaction, '1', '1', 'Nada satisfecho', 1),
@@ -249,7 +249,7 @@ BEGIN
     -- ========================================================
     -- 6. P04 - RANKING DE 3 PROBLEMAS
     -- ========================================================
-    INSERT INTO intersel_insight.survey_questions
+    INSERT INTO insight_survey.survey_questions
         (instrument_version_id, section_id, code, text, question_type,
          position, required, min_answers, max_answers)
     VALUES
@@ -258,44 +258,44 @@ BEGIN
          'ranking', 1, true, 3, 3)
     RETURNING id INTO q_problems;
 
-    INSERT INTO intersel_insight.survey_variables
+    INSERT INTO insight_survey.survey_variables
         (question_id, code, label, data_type, measurement_level)
     VALUES
         (q_problems, 'principales_problemas',
          'Principales problemas de la ciudad', 'categorical', 'nominal')
     RETURNING id INTO var_problems;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_problems, 'SEG', '1', 'Inseguridad', 1)
     RETURNING id INTO opt_problem_security;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_problems, 'AGUA', '2', 'Agua', 2)
     RETURNING id INTO opt_problem_water;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_problems, 'CALLES', '3', 'Calles y pavimentación', 3)
     RETURNING id INTO opt_problem_streets;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_problems, 'TRANS', '4', 'Transporte público', 4)
     RETURNING id INTO opt_problem_transport;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_problems, 'EMPLEO', '5', 'Empleo', 5)
     RETURNING id INTO opt_problem_employment;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_problems, 'CORR', '6', 'Corrupción', 6)
     RETURNING id INTO opt_problem_corruption;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_problems, 'OTRO', '7', 'Otro', 7)
     RETURNING id INTO opt_problem_other;
@@ -303,14 +303,14 @@ BEGIN
     -- ========================================================
     -- 7. P05 - OTRO PROBLEMA (CONDICIONAL)
     -- ========================================================
-    INSERT INTO intersel_insight.survey_questions
+    INSERT INTO insight_survey.survey_questions
         (instrument_version_id, section_id, code, text, question_type, position)
     VALUES
         (v_version, sec_problems, 'P05',
          '¿Cuál otro problema considera importante?', 'text', 2)
     RETURNING id INTO q_other_problem;
 
-    INSERT INTO intersel_insight.survey_variables
+    INSERT INTO insight_survey.survey_variables
         (question_id, code, label, data_type, measurement_level)
     VALUES
         (q_other_problem, 'otro_problema',
@@ -320,7 +320,7 @@ BEGIN
     -- ========================================================
     -- 8. P06 - DISCRIMINACIÓN
     -- ========================================================
-    INSERT INTO intersel_insight.survey_questions
+    INSERT INTO insight_survey.survey_questions
         (instrument_version_id, section_id, code, text, question_type,
          position, required)
     VALUES
@@ -329,19 +329,19 @@ BEGIN
          'single_choice', 1, true)
     RETURNING id INTO q_discrimination;
 
-    INSERT INTO intersel_insight.survey_variables
+    INSERT INTO insight_survey.survey_variables
         (question_id, code, label, data_type, measurement_level)
     VALUES
         (q_discrimination, 'sufrio_discriminacion',
          'Sufrió discriminación', 'categorical', 'nominal')
     RETURNING id INTO var_discrimination;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_discrimination, 'SI', '1', 'Sí', 1)
     RETURNING id INTO opt_disc_yes;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_discrimination, 'NO', '0', 'No', 2)
     RETURNING id INTO opt_disc_no;
@@ -349,7 +349,7 @@ BEGIN
     -- ========================================================
     -- 9. P07 - MOTIVOS (MULTISELECT + CONDICIONAL)
     -- ========================================================
-    INSERT INTO intersel_insight.survey_questions
+    INSERT INTO insight_survey.survey_questions
         (instrument_version_id, section_id, code, text, question_type,
          position, min_answers, max_answers)
     VALUES
@@ -358,39 +358,39 @@ BEGIN
          'multiple_choice', 2, 1, 6)
     RETURNING id INTO q_discrimination_reasons;
 
-    INSERT INTO intersel_insight.survey_variables
+    INSERT INTO insight_survey.survey_variables
         (question_id, code, label, data_type, measurement_level)
     VALUES
         (q_discrimination_reasons, 'motivos_discriminacion',
          'Motivos de discriminación', 'categorical', 'nominal')
     RETURNING id INTO var_discrimination_reasons;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_discrimination_reasons, 'EDAD', '1', 'Edad', 1)
     RETURNING id INTO opt_reason_age;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_discrimination_reasons, 'GENERO', '2', 'Género', 2)
     RETURNING id INTO opt_reason_gender;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_discrimination_reasons, 'APAR', '3', 'Apariencia física', 3)
     RETURNING id INTO opt_reason_appearance;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_discrimination_reasons, 'INGRESO', '4', 'Situación económica', 4)
     RETURNING id INTO opt_reason_income;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_discrimination_reasons, 'DISC', '5', 'Discapacidad', 5)
     RETURNING id INTO opt_reason_disability;
 
-    INSERT INTO intersel_insight.survey_answer_options
+    INSERT INTO insight_survey.survey_answer_options
         (question_id, code, value, label, position)
     VALUES (q_discrimination_reasons, 'OTRO', '6', 'Otro', 6)
     RETURNING id INTO opt_reason_other;
@@ -398,7 +398,7 @@ BEGIN
     -- ========================================================
     -- 10. P08 - GASTO SEMANAL EN TRANSPORTE
     -- ========================================================
-    INSERT INTO intersel_insight.survey_questions
+    INSERT INTO insight_survey.survey_questions
         (instrument_version_id, section_id, code, text, question_type,
          position, metadata)
     VALUES
@@ -407,7 +407,7 @@ BEGIN
          'number', 1, '{"min":0}'::jsonb)
     RETURNING id INTO q_transport;
 
-    INSERT INTO intersel_insight.survey_variables
+    INSERT INTO insight_survey.survey_variables
         (question_id, code, label, data_type, measurement_level,
          unit, decimal_places)
     VALUES
@@ -418,7 +418,7 @@ BEGIN
     -- ========================================================
     -- 11. P09 - OPINIÓN ABIERTA
     -- ========================================================
-    INSERT INTO intersel_insight.survey_questions
+    INSERT INTO insight_survey.survey_questions
         (instrument_version_id, section_id, code, text, question_type, position)
     VALUES
         (v_version, sec_opinion, 'P09',
@@ -426,7 +426,7 @@ BEGIN
          'textarea', 2)
     RETURNING id INTO q_opinion;
 
-    INSERT INTO intersel_insight.survey_variables
+    INSERT INTO insight_survey.survey_variables
         (question_id, code, label, data_type, measurement_level)
     VALUES
         (q_opinion, 'opinion_mejora_ciudad',
@@ -436,7 +436,7 @@ BEGIN
     -- ========================================================
     -- 12. REGLAS CONDICIONALES
     -- ========================================================
-    INSERT INTO intersel_insight.survey_logic_rules
+    INSERT INTO insight_survey.survey_logic_rules
         (instrument_version_id, source_question_id, operator,
          comparison_value, target_type, target_id, action, priority)
     VALUES
@@ -477,7 +477,7 @@ BEGIN
             v_disc_option := opt_disc_no;
         END IF;
 
-        INSERT INTO intersel_insight.survey_observations
+        INSERT INTO insight_survey.survey_observations
             (instrument_version_id, external_id, started_at, completed_at,
              status, weight, context, metadata)
         VALUES
@@ -504,12 +504,12 @@ BEGIN
         END IF;
 
         -- P01 Edad
-        INSERT INTO intersel_insight.survey_responses
+        INSERT INTO insight_survey.survey_responses
             (observation_id, variable_id, raw_value, value_integer)
         VALUES (v_obs, var_age, v_age::text, v_age);
 
         -- P02 Género
-        INSERT INTO intersel_insight.survey_responses
+        INSERT INTO insight_survey.survey_responses
             (observation_id, variable_id, raw_value, answer_option_id,
              is_missing, missing_type)
         VALUES
@@ -518,12 +518,12 @@ BEGIN
              CASE WHEN v_gender_option = opt_gender_refused THEN 'refused' ELSE NULL END);
 
         -- P03 Satisfacción
-        INSERT INTO intersel_insight.survey_responses
+        INSERT INTO insight_survey.survey_responses
             (observation_id, variable_id, raw_value, value_integer)
         VALUES (v_obs, var_satisfaction, v_sat::text, v_sat);
 
         -- P04 Ranking: primero creamos UNA respuesta padre.
-        INSERT INTO intersel_insight.survey_responses
+        INSERT INTO insight_survey.survey_responses
             (observation_id, variable_id)
         VALUES (v_obs, var_problems)
         RETURNING id INTO v_response;
@@ -531,7 +531,7 @@ BEGIN
         -- Seis patrones; dentro de cada patrón las 3 opciones son únicas.
         CASE i % 6
             WHEN 0 THEN
-                INSERT INTO intersel_insight.survey_response_selections
+                INSERT INTO insight_survey.survey_response_selections
                     (response_id, answer_option_id, rank)
                 VALUES
                     (v_response, opt_problem_water, 1),
@@ -540,7 +540,7 @@ BEGIN
                 v_has_other_problem := true;
 
             WHEN 1 THEN
-                INSERT INTO intersel_insight.survey_response_selections
+                INSERT INTO insight_survey.survey_response_selections
                     (response_id, answer_option_id, rank)
                 VALUES
                     (v_response, opt_problem_security, 1),
@@ -549,7 +549,7 @@ BEGIN
                 v_has_other_problem := false;
 
             WHEN 2 THEN
-                INSERT INTO intersel_insight.survey_response_selections
+                INSERT INTO insight_survey.survey_response_selections
                     (response_id, answer_option_id, rank)
                 VALUES
                     (v_response, opt_problem_streets, 1),
@@ -558,7 +558,7 @@ BEGIN
                 v_has_other_problem := false;
 
             WHEN 3 THEN
-                INSERT INTO intersel_insight.survey_response_selections
+                INSERT INTO insight_survey.survey_response_selections
                     (response_id, answer_option_id, rank)
                 VALUES
                     (v_response, opt_problem_water, 1),
@@ -567,7 +567,7 @@ BEGIN
                 v_has_other_problem := false;
 
             WHEN 4 THEN
-                INSERT INTO intersel_insight.survey_response_selections
+                INSERT INTO insight_survey.survey_response_selections
                     (response_id, answer_option_id, rank)
                 VALUES
                     (v_response, opt_problem_security, 1),
@@ -576,7 +576,7 @@ BEGIN
                 v_has_other_problem := false;
 
             WHEN 5 THEN
-                INSERT INTO intersel_insight.survey_response_selections
+                INSERT INTO insight_survey.survey_response_selections
                     (response_id, answer_option_id, rank)
                 VALUES
                     (v_response, opt_problem_streets, 1),
@@ -593,7 +593,7 @@ BEGIN
                      ELSE 'Falta de áreas verdes'
                 END;
 
-            INSERT INTO intersel_insight.survey_responses
+            INSERT INTO insight_survey.survey_responses
                 (observation_id, variable_id, raw_value, value_text)
             VALUES
                 (v_obs, var_other_problem,
@@ -601,7 +601,7 @@ BEGIN
         END IF;
 
         -- P06 Discriminación
-        INSERT INTO intersel_insight.survey_responses
+        INSERT INTO insight_survey.survey_responses
             (observation_id, variable_id, raw_value, answer_option_id)
         VALUES
             (v_obs, var_discrimination,
@@ -610,13 +610,13 @@ BEGIN
 
         -- P07 Sólo existe si P06 = Sí.
         IF v_has_disc THEN
-            INSERT INTO intersel_insight.survey_responses
+            INSERT INTO insight_survey.survey_responses
                 (observation_id, variable_id)
             VALUES (v_obs, var_discrimination_reasons)
             RETURNING id INTO v_response;
 
             -- Primera razón (siempre una).
-            INSERT INTO intersel_insight.survey_response_selections
+            INSERT INTO insight_survey.survey_response_selections
                 (response_id, answer_option_id)
             VALUES
                 (v_response,
@@ -630,24 +630,24 @@ BEGIN
             -- Segunda razón sólo en algunos casos; elegimos una opción
             -- que nunca coincide con la primera para respetar UNIQUE.
             IF i % 8 = 0 THEN
-                INSERT INTO intersel_insight.survey_response_selections
+                INSERT INTO insight_survey.survey_response_selections
                     (response_id, answer_option_id)
                 VALUES (v_response, opt_reason_income);
             ELSIF i % 7 = 0 THEN
-                INSERT INTO intersel_insight.survey_response_selections
+                INSERT INTO insight_survey.survey_response_selections
                     (response_id, answer_option_id)
                 VALUES (v_response, opt_reason_other);
             END IF;
         END IF;
 
         -- P08 Transporte
-        INSERT INTO intersel_insight.survey_responses
+        INSERT INTO insight_survey.survey_responses
             (observation_id, variable_id, raw_value, value_decimal)
         VALUES
             (v_obs, var_transport, v_transport::text, v_transport);
 
         -- P09 Opinión abierta
-        INSERT INTO intersel_insight.survey_responses
+        INSERT INTO insight_survey.survey_responses
             (observation_id, variable_id, raw_value, value_text)
         VALUES
             (v_obs, var_opinion,
@@ -685,55 +685,55 @@ DECLARE
     n_bad_other_problem integer;
 BEGIN
     SELECT count(*) INTO n_studies
-    FROM intersel_insight.survey_studies
+    FROM insight_survey.survey_studies
     WHERE code = 'DEMO_CIUDADANA';
 
     SELECT count(*) INTO n_instruments
-    FROM intersel_insight.survey_instruments i
-    JOIN intersel_insight.survey_studies s ON s.id = i.study_id
+    FROM insight_survey.survey_instruments i
+    JOIN insight_survey.survey_studies s ON s.id = i.study_id
     WHERE s.code = 'DEMO_CIUDADANA';
 
     SELECT count(*) INTO n_versions
-    FROM intersel_insight.survey_instrument_versions iv
-    JOIN intersel_insight.survey_instruments i ON i.id = iv.instrument_id
-    JOIN intersel_insight.survey_studies s ON s.id = i.study_id
+    FROM insight_survey.survey_instrument_versions iv
+    JOIN insight_survey.survey_instruments i ON i.id = iv.instrument_id
+    JOIN insight_survey.survey_studies s ON s.id = i.study_id
     WHERE s.code = 'DEMO_CIUDADANA';
 
     SELECT count(*) INTO n_sections
-    FROM intersel_insight.survey_sections sec
-    JOIN intersel_insight.survey_instrument_versions iv ON iv.id = sec.instrument_version_id
-    JOIN intersel_insight.survey_instruments i ON i.id = iv.instrument_id
-    JOIN intersel_insight.survey_studies s ON s.id = i.study_id
+    FROM insight_survey.survey_sections sec
+    JOIN insight_survey.survey_instrument_versions iv ON iv.id = sec.instrument_version_id
+    JOIN insight_survey.survey_instruments i ON i.id = iv.instrument_id
+    JOIN insight_survey.survey_studies s ON s.id = i.study_id
     WHERE s.code = 'DEMO_CIUDADANA';
 
     SELECT count(*) INTO n_questions
-    FROM intersel_insight.survey_questions q
-    JOIN intersel_insight.survey_instrument_versions iv ON iv.id = q.instrument_version_id
-    JOIN intersel_insight.survey_instruments i ON i.id = iv.instrument_id
-    JOIN intersel_insight.survey_studies s ON s.id = i.study_id
+    FROM insight_survey.survey_questions q
+    JOIN insight_survey.survey_instrument_versions iv ON iv.id = q.instrument_version_id
+    JOIN insight_survey.survey_instruments i ON i.id = iv.instrument_id
+    JOIN insight_survey.survey_studies s ON s.id = i.study_id
     WHERE s.code = 'DEMO_CIUDADANA';
 
     SELECT count(*) INTO n_variables
-    FROM intersel_insight.survey_variables v
-    JOIN intersel_insight.survey_questions q ON q.id = v.question_id
-    JOIN intersel_insight.survey_instrument_versions iv ON iv.id = q.instrument_version_id
-    JOIN intersel_insight.survey_instruments i ON i.id = iv.instrument_id
-    JOIN intersel_insight.survey_studies s ON s.id = i.study_id
+    FROM insight_survey.survey_variables v
+    JOIN insight_survey.survey_questions q ON q.id = v.question_id
+    JOIN insight_survey.survey_instrument_versions iv ON iv.id = q.instrument_version_id
+    JOIN insight_survey.survey_instruments i ON i.id = iv.instrument_id
+    JOIN insight_survey.survey_studies s ON s.id = i.study_id
     WHERE s.code = 'DEMO_CIUDADANA';
 
     SELECT count(*) INTO n_observations
-    FROM intersel_insight.survey_observations o
-    JOIN intersel_insight.survey_instrument_versions iv ON iv.id = o.instrument_version_id
-    JOIN intersel_insight.survey_instruments i ON i.id = iv.instrument_id
-    JOIN intersel_insight.survey_studies s ON s.id = i.study_id
+    FROM insight_survey.survey_observations o
+    JOIN insight_survey.survey_instrument_versions iv ON iv.id = o.instrument_version_id
+    JOIN insight_survey.survey_instruments i ON i.id = iv.instrument_id
+    JOIN insight_survey.survey_studies s ON s.id = i.study_id
     WHERE s.code = 'DEMO_CIUDADANA';
 
     SELECT count(*) INTO n_duplicate_rank_options
     FROM (
         SELECT rs.response_id, rs.answer_option_id, count(*)
-        FROM intersel_insight.survey_response_selections rs
-        JOIN intersel_insight.survey_responses r ON r.id = rs.response_id
-        JOIN intersel_insight.survey_variables v ON v.id = r.variable_id
+        FROM insight_survey.survey_response_selections rs
+        JOIN insight_survey.survey_responses r ON r.id = rs.response_id
+        JOIN insight_survey.survey_variables v ON v.id = r.variable_id
         WHERE v.code = 'principales_problemas'
         GROUP BY rs.response_id, rs.answer_option_id
         HAVING count(*) > 1
@@ -741,15 +741,15 @@ BEGIN
 
     -- No debe existir P05 si P04 no contiene OTRO.
     SELECT count(*) INTO n_bad_other_problem
-    FROM intersel_insight.survey_responses r_other
-    JOIN intersel_insight.survey_variables v_other ON v_other.id = r_other.variable_id
+    FROM insight_survey.survey_responses r_other
+    JOIN insight_survey.survey_variables v_other ON v_other.id = r_other.variable_id
     WHERE v_other.code = 'otro_problema'
       AND NOT EXISTS (
           SELECT 1
-          FROM intersel_insight.survey_responses r_problem
-          JOIN intersel_insight.survey_variables v_problem ON v_problem.id = r_problem.variable_id
-          JOIN intersel_insight.survey_response_selections rs ON rs.response_id = r_problem.id
-          JOIN intersel_insight.survey_answer_options ao ON ao.id = rs.answer_option_id
+          FROM insight_survey.survey_responses r_problem
+          JOIN insight_survey.survey_variables v_problem ON v_problem.id = r_problem.variable_id
+          JOIN insight_survey.survey_response_selections rs ON rs.response_id = r_problem.id
+          JOIN insight_survey.survey_answer_options ao ON ao.id = rs.answer_option_id
           WHERE r_problem.observation_id = r_other.observation_id
             AND v_problem.code = 'principales_problemas'
             AND ao.code = 'OTRO'
@@ -783,19 +783,19 @@ SELECT
     i.code AS instrument,
     iv.version,
     (SELECT count(*)
-       FROM intersel_insight.survey_sections sec
+       FROM insight_survey.survey_sections sec
       WHERE sec.instrument_version_id = iv.id) AS sections,
     (SELECT count(*)
-       FROM intersel_insight.survey_questions q
+       FROM insight_survey.survey_questions q
       WHERE q.instrument_version_id = iv.id) AS questions,
     (SELECT count(*)
-       FROM intersel_insight.survey_variables v
-       JOIN intersel_insight.survey_questions q ON q.id = v.question_id
+       FROM insight_survey.survey_variables v
+       JOIN insight_survey.survey_questions q ON q.id = v.question_id
       WHERE q.instrument_version_id = iv.id) AS variables,
     (SELECT count(*)
-       FROM intersel_insight.survey_observations o
+       FROM insight_survey.survey_observations o
       WHERE o.instrument_version_id = iv.id) AS observations
-FROM intersel_insight.survey_studies s
-JOIN intersel_insight.survey_instruments i ON i.study_id = s.id
-JOIN intersel_insight.survey_instrument_versions iv ON iv.instrument_id = i.id
+FROM insight_survey.survey_studies s
+JOIN insight_survey.survey_instruments i ON i.study_id = s.id
+JOIN insight_survey.survey_instrument_versions iv ON iv.instrument_id = i.id
 WHERE s.code = 'DEMO_CIUDADANA';

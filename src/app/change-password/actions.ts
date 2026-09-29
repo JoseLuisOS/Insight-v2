@@ -45,5 +45,10 @@ export async function changePassword(formData: FormData) {
     redirect(`/change-password?error=${encodeURIComponent(metaError.message)}`);
   }
 
+  const { data: status } = await supabase.rpc("get_org_bootstrap_status");
+  if (status?.organization_count === 0 && status?.is_platform_admin) {
+    redirect("/onboarding");
+  }
+
   redirect("/dashboard");
 }

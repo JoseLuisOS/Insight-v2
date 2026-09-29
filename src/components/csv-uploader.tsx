@@ -155,7 +155,7 @@ export function CsvUploader() {
 
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-sm">
-              <thead className="bg-muted">
+              <thead className="insight-card-header text-left text-xs font-semibold">
                 <tr>
                   {table.columns.map((c, idx) => (
                     <th key={c.key} className="px-3 py-2 text-left font-medium">

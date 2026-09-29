@@ -133,7 +133,7 @@ function ResultTable({
       </p>
       <div className="max-h-[420px] overflow-auto rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-muted">
+          <thead className="insight-card-header sticky top-0 text-left text-xs font-semibold">
             <tr>
               {columns.map((c) => (
                 <th key={c} className="whitespace-nowrap px-3 py-2 text-left font-medium">

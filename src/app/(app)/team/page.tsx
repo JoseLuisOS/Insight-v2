@@ -1,62 +1,39 @@
-import { InviteManager } from "@/components/invite-manager";
-import { TeamTable } from "@/components/team-table";
-import { getProfileContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { isSysadmin } from "@/lib/insight-catalog";
+import { listUserOrganizations, memberRoleIds, type ManagedUser } from "@/lib/insight-users";
+import { UsersManager } from "@/components/insight/users-manager";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+type Role = { id: string; code: string; name: string };
+type MemberRpc = Omit<ManagedUser, "role_ids">;
 
-export default async function TeamPage() {
-  const { user, profile } = await getProfileContext();
+export default async function TeamPage({ searchParams }: { searchParams: Promise<{ org?: string }> }) {
+  const { org } = await searchParams;
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, display_name, role, can_publish")
-    .order("created_at", { ascending: true });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const organizations = await listUserOrganizations(user.id);
+  if (!organizations.length) return <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-card p-6"><h1 className="text-2xl font-semibold text-foreground">Usuarios</h1><p className="mt-2 text-sm text-muted-foreground">No tienes permiso para administrar usuarios en una organización.</p></div>;
 
-  const members =
-    (data as {
-      id: string;
-      display_name: string | null;
-      role: "admin" | "editor" | "viewer";
-      can_publish: boolean;
-    }[] | null) ?? [];
-
-  const isAdmin = profile?.role === "admin";
-
-  const { data: invitesData } = isAdmin
-    ? await supabase
-        .from("tenant_invites")
-        .select("id, role, token, expires_at, accepted_at")
-        .order("created_at", { ascending: false })
-    : { data: [] };
-  const invites =
-    (invitesData as {
-      id: string;
-      role: string;
-      token: string;
-      expires_at: string;
-      accepted_at: string | null;
-    }[] | null) ?? [];
-
-  return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-semibold text-foreground">Equipo</h1>
-      <p className="mt-1 text-muted-foreground">
-        Miembros de {profile?.tenants?.name}.{" "}
-        {isAdmin
-          ? "Como admin, puedes cambiar roles y el permiso de publicación."
-          : "Sólo un administrador puede cambiar roles."}
-      </p>
-
-      <div className="mt-6">
-        <TeamTable members={members} isAdmin={!!isAdmin} currentUserId={user!.id} />
-      </div>
-
-      {isAdmin && (
-        <div className="mt-6">
-          <InviteManager invites={invites} siteUrl={SITE_URL} />
-        </div>
-      )}
-    </div>
-  );
+  const current = organizations.find((item) => item.id === org) ?? organizations[0];
+  const [rolesResult, membersResult, roleIds, admin] = await Promise.all([
+    supabase.rpc("list_org_roles", { p_org: current.id }),
+    supabase.rpc("list_org_members", { p_org: current.id }),
+    memberRoleIds(current.id),
+    isSysadmin(user.id),
+  ]);
+  if (rolesResult.error || membersResult.error) throw new Error("No se pudieron cargar los usuarios de esta organización.");
+  const roleMap = new Map(roleIds.map((item) => [item.user_id, item.role_ids]));
+  const members = ((membersResult.data as MemberRpc[] | null) ?? []).map((member) => ({ ...member, role_ids: roleMap.get(member.user_id) ?? [] }));
+  return <UsersManager
+    key={current.id}
+    organization={current}
+    organizations={organizations}
+    roles={(rolesResult.data as Role[] | null) ?? []}
+    initialMembers={members}
+    currentUserId={user.id}
+    canCreate={current.can_create}
+    canEdit={current.can_edit}
+    canRemove={current.can_remove}
+    canResetPassword={admin && current.can_edit}
+  />;
 }

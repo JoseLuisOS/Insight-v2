@@ -7,7 +7,7 @@ import { CubeLoader } from "@/components/cube-loader";
  */
 export default function AppLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted">
+    <div className="flex min-h-[60dvh] items-center justify-center">
       <div className="flex flex-col items-center gap-3 text-primary">
         <CubeLoader size={40} />
         <p className="text-sm text-muted-foreground">Cargando…</p>

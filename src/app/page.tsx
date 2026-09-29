@@ -11,5 +11,8 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  redirect(user ? "/dashboard" : "/login");
+  if (!user) redirect("/login");
+  const { data: status } = await supabase.rpc("get_org_bootstrap_status");
+  if (status?.organization_count === 0 && status?.is_platform_admin) redirect("/onboarding");
+  redirect("/dashboard");
 }

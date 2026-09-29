@@ -1,55 +1,39 @@
 # Intersel Insight
 
-Plataforma **multi-organización** de creación y visualización de dashboards. Una instalación
-puede alojar varias organizaciones (aislamiento lógico vía `organization_id`, no una BD por
-cliente); los usuarios son globales a la instalación y pueden pertenecer a una o varias
-organizaciones con roles distintos en cada una. Combina la capa de análisis (datasets, SQL,
-dashboards) con una capa de publicación/embed para gráficas publication-ready.
+Aplicación para crear, explorar y publicar visualizaciones y dashboards. El modelo objetivo es **multi-organización, no multitenant**: una instalación corresponde a un deployment y puede alojar varias organizaciones. Los usuarios pertenecen a la instalación y pueden tener memberships, roles y permisos distintos por organización. `organization_id` define pertenencia y aislamiento de datos; no existe un `installation_id` en el modelo objetivo.
 
-> ⚠️ **En refactor activo (desde 2026-09-21).** El diseño original (multi-tenant clásico,
-> documentado en `docs/PLAN.md`) fue reemplazado por el modelo multi-organización de
-> [`ARQUITECTURA_BBDD.md`](ARQUITECTURA_BBDD.md). La fuente de verdad viva es
-> **[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)** — léelo antes de asumir nada del código o
-> de `docs/PLAN.md`.
+> **Estado de implementación:** el código todavía contiene contratos heredados como `tenant_id`, `profiles` y `tenants`. No asumir que el modelo objetivo ya está implementado en toda la aplicación o en la base de datos. Consulta el código del flujo afectado y registra las diferencias antes de modificarlo.
 
-## Stack
+## Documentos de referencia
 
-- **Frontend:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS · shadcn/ui
-- **Gráficas:** Apache ECharts
-- **Backend:** Supabase (Postgres 17 · Auth · Edge Functions · Storage)
-- **Deploy:** Vercel + Supabase cloud
-
-## Documentación
-
-| Documento | Contenido |
+| Documento | Uso |
 |---|---|
-| [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) | **Fuente de verdad viva** (índice) — BD, IAM, dominios, seguridad, despliegue |
-| [ARQUITECTURA_BBDD.md](ARQUITECTURA_BBDD.md) | Spec original del modelo IAM multi-organización que originó el refactor |
-| [docs/MANUAL.md](docs/MANUAL.md) | Manual de configuración, uso y recomendaciones |
-| [docs/PLAN.md](docs/PLAN.md) | *Legacy* — alcance/UI/stack siguen vigentes; modelo de datos y seguridad, no |
-| [docs/LOG.md](docs/LOG.md) | Bitácora cronológica de desarrollo |
-| [docs/APRENDIZAJES.md](docs/APRENDIZAJES.md) | Aprendizajes técnicos y del dominio |
-| [docs/DECISIONES.md](docs/DECISIONES.md) | Registro de decisiones (ADR ligero) |
-| [CLAUDE.md](CLAUDE.md) | Guía operativa para desarrollo asistido |
-| [.claude/skills/insight-v2](.claude/skills/insight-v2/SKILL.md) | Skill del proyecto: conexión de BD, qué es legacy, gotchas |
+| [docs/MAPA_MODULOS.md](docs/MAPA_MODULOS.md) | Índice del código actual, rutas, módulos y dependencias inmediatas. |
+| [docs/BITACORA.md](docs/BITACORA.md) | Registro de cambios y motivación de la evolución v2. |
+| [docs/GUIA_MIGRACION_V1_A_V2.md](docs/GUIA_MIGRACION_V1_A_V2.md) | Procedimiento enfocado para adaptar módulos v1 al modelo organizacional. |
+| [ARQUITECTURA_BBDD.md](ARQUITECTURA_BBDD.md) | Modelo objetivo multi-organización e IAM, designado por el usuario. |
+| [AGENTS.md](AGENTS.md) | Reglas de trabajo eficientes y consulta de documentación local de Next.js. |
+| [.claude/skills/insight-v2/SKILL.md](.claude/skills/insight-v2/SKILL.md) | Contexto operativo para trabajar en este proyecto. |
 
-## Base de datos
+Los demás Markdown del repositorio están pendientes de revisión y no se consideran contratos vigentes. Algunos conservan decisiones anteriores de producto, arquitectura, seguridad o infraestructura.
 
-Una sola base de datos Supabase para toda la instalación (proyecto ref `bkeiyculoypaisbpjvln`,
-documentado con credenciales en `.env`, gitignored — ver `.env.example` para las variables
-requeridas). Detalle de roles/permisos en [docs/ARQUITECTURA.md §1](docs/ARQUITECTURA.md#1-base-de-datos).
+## Estado de versiones
 
-## Desarrollo
+El código de aplicación documentado se considera v1, excepto el módulo Perfil, que el usuario identificó como v2. Consulta [docs/MAPA_MODULOS.md](docs/MAPA_MODULOS.md) para ver rutas y archivos. La etiqueta v2 no implica que el módulo ya use `organization_id` o esté completamente integrado con memberships; eso se verifica por separado.
+
+## Stack declarado
+
+- Next.js `16.2.9`, React `19.2.4` y TypeScript.
+- Supabase para autenticación, persistencia y funciones Edge.
+- Apache ECharts para visualización.
+
+Consulta `package.json` para dependencias y comandos vigentes.
+
+## Desarrollo local
 
 ```bash
-cp .env.example .env   # rellena con los valores reales (pídeselos a otro miembro del equipo)
 npm install
-npm run dev             # http://localhost:3000
+npm run dev
 ```
 
-Verificado funcionando (2026-09-21). Detalle en
-[docs/ARQUITECTURA.md §5](docs/ARQUITECTURA.md#5-frontend--despliegue-local).
-
----
-
-© Intersel. Acento de marca `#4377BC`.
+Configura las variables requeridas a partir de `.env.example`. No incluyas secretos en el repositorio ni en documentación.

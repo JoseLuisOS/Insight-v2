@@ -224,7 +224,7 @@ export function DashboardView({
         >
           {items.map((it) => (
             <div key={it.id} className="overflow-hidden rounded-lg border border-border bg-card">
-              <div className="border-b border-border bg-muted px-3 py-1.5 text-sm font-medium">
+              <div className="insight-card-header border-b px-3 py-1.5 text-sm font-medium">
                 {it.name}
               </div>
               <div className="h-[calc(100%-34px)] p-2">

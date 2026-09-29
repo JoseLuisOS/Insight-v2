@@ -5,6 +5,8 @@
 
 # Manual de Intersel Insight
 
+> **Manual de v1, pendiente de reescritura.** Sus instrucciones, enlaces, URLs y descripciones corresponden a la primera versión y no están validados para Insight-v2. No usar como guía operativa. El modelo objetivo está en [`../ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md); el estado del código se consulta en [`MAPA_MODULOS.md`](MAPA_MODULOS.md).
+
 **Plataforma multi-tenant para crear, visualizar y publicar dashboards.**
 Versión del manual: 1.1 · Aplica al estado actual de producción.
 

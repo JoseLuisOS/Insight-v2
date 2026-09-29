@@ -1,5 +1,46 @@
 # Bitácora de desarrollo — Intersel Insight
 
+## 2026-09-24 — Módulo de alta de usuarios (`/team`, "Usuarios")
+
+**Hecho:** `scripts/010_public_member_admin_rpc.sql` aplicado a la BD (admin): `iam_has_permission`
+(regla §13), `list_invitable_orgs`, `list_org_roles`, `list_org_members`,
+`add_organization_member` (re-verifica `members.invite`, roles de la org, Owner solo por Owner/
+sysadmin) y `find_auth_user_by_email` (solo `service_role`). Test `scripts/tests/002_member_admin_test.sql`
+sin fallas. `004_iam_seed_hcv.sql` re-corrido (idempotente) para el sysadmin
+`joseluis.o.santana@hotmail.com`, cuya cuenta ya existía. UI: `/team` con formulario de alta
+(contraseña temporal autogenerada, mostrada una vez) y lista de miembros; se eliminó el código
+del modelo anterior (`tenant_invites`/`profiles`). Spec: `docs/superpowers/specs/2026-09-24-modulo-alta-usuarios-design.md`.
+
+**Pendiente:** prueba manual en navegador (sin editar/suspender usuarios: fuera de alcance);
+`bootstrap_first_organization` solo da permisos al rol Owner (spec §7).
+
+---
+
+## 2026-09-24 — Shell de navegación: sidebar vertical + header (réplica de BAIOS)
+
+**Hecho:**
+- Menú horizontal de 10 links reemplazado por sidebar vertical con 4 grupos (`src/lib/nav.ts`):
+  General (Inicio) · Datos (Fuentes, Datasets, SQL Lab, Métricas) · Visualización (Dashboards,
+  Gráficas, Mapas, Temas) · Administración (Equipo). Íconos lucide en grupos y módulos,
+  registro explícito en `components/navigation/nav-icon.tsx`.
+- Componentes en `src/components/navigation/` portados de `temikia_client_baios_template`,
+  con tokens semánticos de Insight (sin RBAC, sin `temikia-*`): Sidebar (rail 64px / 200px,
+  grupos colapsables, flyout, estado en cookies `insight-sidebar-*` leídas en SSR), PanelHeader
+  (grupo + módulo, tira de íconos, campana placeholder, recargar, reloj, pantalla completa),
+  ThemeToggle, drawer + banda inferior móvil, diálogo de confirmación de cierre de sesión.
+- Tema: script anti-flash en `<head>` (`localStorage` `insight-theme` → `prefers-color-scheme`).
+- `(app)/layout.tsx`: `h-dvh` con scroll interno en `<main>`; padding `px-6 py-8` conservado.
+  `/profile` y `/query` no están en el menú y usan fallback de título ("Cuenta / Perfil").
+- `loading.tsx` ya no usa `min-h-screen` (desbordaba el panel con scroll).
+
+**Estado:** `npm run build` OK; `npm run lint` sin errores en el código nuevo (queda 1 error
+preexistente en `supabase/functions/import-external`). **Pendiente:** revisión visual en
+navegador (claro/oscuro, escritorio/móvil) — no se pudo hacer en la sesión (extensión de
+Chrome desconectada). El nombre de organización sigue saliendo de `profiles.tenants`
+(legado); cae a "Intersel Insight" hasta que exista un RPC de organización.
+
+---
+
 ## 2026-09-23 — Módulo de perfil (nombre, contraseña, foto)
 
 **Decisión de almacenamiento para la foto de perfil:** Supabase Storage, no S3 ni disco del

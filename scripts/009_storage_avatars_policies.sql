@@ -6,12 +6,12 @@
 -- keeps this consistent with everything else in the project).
 --
 -- MUST run via the ADMIN connection: `storage` is a Supabase-managed
--- schema, intersel_insight_app has no privileges there.
+-- schema, insight_app has no privileges there.
 
 do $$
 begin
   begin
-    grant intersel_insight_app to postgres;
+    grant insight_app to postgres;
   exception when duplicate_object or others then null;
   end;
 end $$;

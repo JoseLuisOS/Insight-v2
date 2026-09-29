@@ -26,5 +26,10 @@ export async function login(formData: FormData) {
     redirect("/change-password");
   }
 
+  const { data: status } = await supabase.rpc("get_org_bootstrap_status");
+  if (status?.organization_count === 0 && status?.is_platform_admin) {
+    redirect("/onboarding");
+  }
+
   redirect("/dashboard");
 }

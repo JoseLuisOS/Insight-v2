@@ -1,5 +1,7 @@
 # Registro de decisiones (ADR ligero) — Intersel Insight
 
+> **Registro histórico de v1, no fuente de decisiones actuales.** Las decisiones aquí anotadas pueden haber sido reemplazadas. Para el modelo objetivo multi-organización consulta [`../ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md); registra las nuevas decisiones una vez confirmadas por el usuario.
+
 Cada decisión de arquitectura o proceso relevante. Formato: ID, fecha, estado, contexto,
 decisión, consecuencias. Las decisiones de producto/alcance ya viven en
 [PLAN.md](PLAN.md) §11; aquí van las operativas y las que se confirman durante la ejecución.

@@ -1,22 +1,66 @@
 Sí. Con lo que cerramos por voz ya hay suficiente para fijar una arquitectura sin inventar requisitos adicionales.
 
-# Intercell Insight — Capa Multi-organización e IAM
+# Intersel Insight — Capa Multi-organización e IAM
+
+> **Fuente de arquitectura.** La sección «Estado aplicado» documenta la base verificada el 2026-09-28; el resto del documento conserva el modelo funcional objetivo multi-organización. Para conocer qué módulos de la app ya usan ese modelo, consulta [`docs/MAPA_MODULOS.md`](docs/MAPA_MODULOS.md) y verifica el código.
+
+## Estado aplicado de la base de datos (2026-09-28)
+
+| Schema | Propiedad | Objetos y responsabilidad |
+|---|---|---|
+| `auth` | Supabase (`supabase_admin`) | Usuarios, identidades y sesiones; no se renombra ni se administra desde las migraciones propias. |
+| `insight_core` | `insight_app` | `core_organizations`, `core_user_profiles`; catálogo `app_groups` y `app_modules`, y auditoría. |
+| `insight_iam` | `insight_app` | Diez tablas `iam_*`: administradores globales, membresías, roles, permisos, catálogos y acceso a recursos. |
+| `insight_survey` | `insight_app` | Once tablas `survey_*`: estudios, instrumentos, preguntas, observaciones y respuestas. |
+| `private` | `insight_app` | Dos funciones auxiliares de RLS: `is_platform_admin`, `active_organization_ids`. |
+| `public` | Supabase/Postgres | Diez RPC de aplicación que permiten operaciones acotadas desde la Data API. |
+
+```mermaid
+flowchart LR
+  Auth[auth.users] --> Profiles[insight_core.core_user_profiles]
+  Auth --> Admins[insight_iam.iam_platform_admins]
+  Auth --> Members[insight_iam.iam_organization_memberships]
+  Orgs[insight_core.core_organizations] --> Members
+  Orgs --> Roles[insight_iam.iam_roles y permisos]
+  Orgs --> Survey[insight_survey.survey_*]
+  Members --> UserPermissions[insight_iam.iam_user_permission_overrides]
+  Catalog[insight_core.app_groups y app_modules] --> Audit[insight_core.app_module_audit]
+  Public[public: RPC] --> Profiles
+  Public --> Members
+  Private[private: funciones RLS] --> Admins
+  Private --> Members
+```
+
+- La migración aplicada está en [`scripts/011_reorganize_schemas.sql`](scripts/011_reorganize_schemas.sql). `platform`, `intersel_insight` y el schema vacío `survey` se retiraron; las 23 tablas conservaron sus datos, propietario, identificadores, políticas y RLS activo.
+- [`scripts/012_insight_module_catalog.sql`](scripts/012_insight_module_catalog.sql) introdujo el catálogo y la auditoría en `insight_core`. En esa migración los niveles se llamaban `app_modules`/`app_submodules`; el nombre final se normalizó en la 014.
+- [`scripts/013_insight_control_plane.sql`](scripts/013_insight_control_plane.sql) retiró Insight del catálogo editable y reservó su espacio. El grupo fijo **Insight / Grupos y módulos** vive en código y siempre está disponible para `sysadmin`, aun si todos los grupos gestionables están apagados. No tiene estado ni concesión por organización.
+- [`scripts/014_catalog_groups_modules.sql`](scripts/014_catalog_groups_modules.sql) renombró las tablas y relaciones del catálogo: `app_groups` contiene los grupos, `app_modules` sus módulos, `app_module_entitlements` las concesiones por organización y `app_module_audit` la bitácora de cambios. También actualizó el tipo de entidad en la auditoría y el trigger de concesiones. La base conserva 4 grupos y 10 módulos.
+- [`scripts/015_remove_ready_state.sql`](scripts/015_remove_ready_state.sql) retiró `listo`, convirtió el grupo que lo usaba a `desarrollo` y eliminó `app_module_entitlements`, sus triggers y su función. Antes de eliminarla se verificó que las 20 concesiones estuvieran sin asignación y habilitadas por defecto. La base conserva 4 grupos y 10 módulos.
+- [`scripts/016_catalog_operate_permissions.sql`](scripts/016_catalog_operate_permissions.sql) sincroniza cada `app_modules.code` con `iam_modules.code` y crea su permiso `<code>.operar` mediante trigger. Se aplicó como `insight_app` y se confirmaron 10 permisos `operar` para 10 módulos. La migración los asignó a los roles existentes para conservar la visibilidad inicial. Los nuevos módulos reciben el permiso, pero su asignación a roles o usuarios se decide por separado.
+- Los estados vigentes de grupos y módulos gestionables son `apagado` (nadie, tampoco `sysadmin`), `desarrollo` (solo `sysadmin`) y `disponible` (usuarios con membresía activa y permiso `operar`). El grupo limita a sus módulos. La auditoría registra altas y cambios. Las tablas privadas tienen RLS activo y ningún acceso directo de `anon` ni `authenticated`; el gestor valida `sysadmin` antes de usar `insight_app`.
+- `iam_modules` agrupa permisos y comparte el código de cada módulo gestionable con `app_modules`. El catálogo `app_*` describe navegación y disponibilidad. Las rutas se asocian a IDs conocidos en código; crear una fila no crea una página ni una API. El menú y las guardas del catálogo evalúan `<code>.operar` por membresía activa: una excepción individual `deny` prevalece sobre el rol y `allow` concede acceso. Permisos aparece en **Administración** y solo admite `sysadmin`; Grupos y módulos sigue en el grupo fijo Insight.
+- Las guardas de catálogo aplican a las páginas existentes y a sus rutas hijas. Los permisos de acciones y los datos de cada módulo v1 siguen requiriendo sus propios controles IAM/RLS durante su migración; el catálogo no sustituye esos controles.
+- Los tres schemas `insight_*` no están expuestos directamente por la Data API. Las funciones necesarias para la app siguen en `public`; sus cuerpos se actualizaron a los nuevos nombres. `authenticated` tiene `USAGE` en los schemas propios y en `private`, pero cada tabla conserva sus grants y políticas específicos.
+- `auth.users(id)` sigue siendo la referencia de identidad. Contraseñas, verificación de correo y sesiones siguen bajo Supabase Auth. No duplicar autenticación en un schema `insight_auth`.
+- `insight_app` es el rol SQL dedicado y dueño de los objetos propios; `scripts/run-sql.js` lo usa por defecto. `postgres` se reserva para operaciones de DBA explícitas con `--admin`, por ejemplo crear objetos que referencien `auth.users` o modificar funciones de `public`.
+- La app Next.js accede normalmente mediante Supabase Auth/Data API. `SUPABASE_SERVICE_ROLE_KEY` y las URL SQL de `insight_app` son credenciales diferentes y solo se usan en servidor. Como dueño de las tablas, `insight_app` puede omitir RLS mientras no se active `FORCE ROW LEVEL SECURITY`; su acceso se limita a procesos confiables.
+- `insight_admin` queda reservado para una responsabilidad administrativa independiente si llega a existir. No se creó un schema vacío por anticipado. Los módulos de app que aún usan `tenant_id`/`profiles`/`tenants` siguen pendientes de migración funcional; el cambio de schemas no los convirtió en v2.
 
 La decisión central sería esta:
 
-> **Una instalación de Intercell Insight puede contener múltiples organizaciones. Todos los datos privados pertenecen explícitamente a una organización. Los usuarios son globales a la instalación y pueden pertenecer a una o varias organizaciones con permisos diferentes en cada una.**
+> **Una instalación de Intersel Insight puede contener múltiples organizaciones. Todos los datos privados pertenecen explícitamente a una organización. Los usuarios son globales a la instalación y pueden pertenecer a una o varias organizaciones con permisos diferentes en cada una.**
 
 No estamos construyendo todavía un SaaS completo. Estamos construyendo una aplicación **multi-organización desde su núcleo**, de forma que inicialmente pueda existir solamente:
 
 ```text
-Intercell Insight
+Intersel Insight
 └── Hermosillo ¿Cómo Vamos?
 ```
 
 y posteriormente:
 
 ```text
-Intercell Insight
+Intersel Insight
 ├── Hermosillo ¿Cómo Vamos?
 ├── Intercel
 ├── Organización X
@@ -27,16 +71,22 @@ Además, el mismo software puede desplegarse independientemente:
 
 ```text
 Instalación A
-Intercell Insight
+Intersel Insight
 ├── Hermosillo ¿Cómo Vamos?
 └── Intercel
 
 Instalación B
-Intercell Insight
+Intersel Insight
 └── Cliente privado X
 ```
 
 No necesitamos `installation_id`. **La instalación es el deployment.**
+
+## Terminología del producto
+
+Intersel Insight se define como una aplicación **multi-organización, no multitenant**. Una instalación (deployment) puede alojar varias organizaciones dentro de la misma aplicación. La organización es el ámbito de pertenencia, autorización y aislamiento de los datos; no representa un deployment independiente ni un tenant de infraestructura.
+
+En este documento, cualquier uso de “tenant” o “multi-tenant” debe entenderse como terminología heredada para referirse al aislamiento entre organizaciones. En nombres nuevos de tablas, columnas, políticas y código se debe usar `organization` / `organization_id`.
 
 ---
 
@@ -149,7 +199,7 @@ No duplicamos a Ana tres veces.
 
 # 3. `core_organizations`
 
-Es el tenant lógico de Intercell Insight.
+Es la entidad que delimita una organización dentro de una instalación de Intersel Insight.
 
 ```sql
 CREATE TABLE core_organizations (
@@ -970,13 +1020,13 @@ organization_id   ← NUEVO
 
 Y dependiendo del modelo existente, también recomendaría incorporar `organization_id` en las tablas descendientes importantes.
 
-Aunque parezca redundante, en un sistema multi-tenant tiene ventajas importantes:
+Aunque parezca redundante, en un sistema multi-organización tiene ventajas importantes:
 
 ```text
 RLS más simple
 queries más simples
 índices más eficientes
-menor riesgo de fuga cross-tenant
+menor riesgo de fuga de datos entre organizaciones
 ```
 
 ---
@@ -1047,7 +1097,7 @@ REFERENCES survey_surveys (
 );
 ```
 
-De esta manera PostgreSQL mismo impide relaciones cross-tenant.
+De esta manera PostgreSQL mismo impide relaciones entre organizaciones.
 
 No dependemos únicamente del backend.
 
@@ -1055,7 +1105,7 @@ No dependemos únicamente del backend.
 
 # 21. Índices
 
-Prácticamente todas las tablas tenant deberían considerar `organization_id` en sus índices.
+Prácticamente todas las tablas con datos organizacionales deberían considerar `organization_id` en sus índices.
 
 Por ejemplo:
 
@@ -1086,7 +1136,7 @@ campos usados habitualmente en filtros
 
 # 22. RLS
 
-Si Intercell Insight está sobre PostgreSQL/Supabase, yo considero **Row Level Security parte de la arquitectura multi-organización**, no una mejora opcional.
+Si Intersel Insight está sobre PostgreSQL/Supabase, yo considero **Row Level Security parte de la arquitectura multi-organización**, no una mejora opcional.
 
 RLS debe garantizar como mínimo:
 
@@ -1120,7 +1170,7 @@ No intentaría meter toda la inteligencia de la plataforma en cien políticas RL
 
 Separaría:
 
-### Tenant isolation
+### Aislamiento entre organizaciones
 
 Principalmente PostgreSQL/RLS:
 
@@ -1330,7 +1380,7 @@ Dejaría literalmente una sección semejante a ésta en la documentación de arq
 
 > **Evolución de autorización jerárquica**
 >
-> La versión inicial de Intercell Insight utiliza organizaciones como frontera principal de aislamiento y un sistema RBAC con excepciones individuales y autorización opcional por recurso.
+> La versión inicial de Intersel Insight utiliza organizaciones como frontera principal de aislamiento y un sistema RBAC con excepciones individuales y autorización opcional por recurso.
 >
 > No se implementa inicialmente una jerarquía intermedia basada en proyectos, estudios, workspaces, equipos o carpetas.
 >
@@ -1392,6 +1442,6 @@ iam_resource_permissions
 organization_id
 ```
 
-Eso me parece el punto correcto para Intercell Insight: **suficientemente robusto para convertirse en producto, pero sin transformar todavía un software para Hermosillo ¿Cómo Vamos? en una plataforma enterprise absurdamente compleja antes de necesitarla.**
+Eso me parece el punto correcto para Intersel Insight: **suficientemente robusto para convertirse en producto, pero sin transformar todavía un software para Hermosillo ¿Cómo Vamos? en una plataforma enterprise absurdamente compleja antes de necesitarla.**
 
-Y, sobre todo, las tablas `survey_*` que ya tienen dejan de ser "la aplicación": pasan a ser correctamente **uno de los dominios de Intercell Insight**. Esa diferencia arquitectónica es la que les permite incorporar después indicadores públicos, fuentes externas, análisis propios y otros módulos sin deformar la base de datos.
+Y, sobre todo, las tablas `survey_*` que ya tienen dejan de ser "la aplicación": pasan a ser correctamente **uno de los dominios de Intersel Insight**. Esa diferencia arquitectónica es la que les permite incorporar después indicadores públicos, fuentes externas, análisis propios y otros módulos sin deformar la base de datos.

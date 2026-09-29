@@ -2,18 +2,19 @@
 -- HCV / Survey Data Platform
 -- Core Schema v1
 -- PostgreSQL / Supabase
+-- Run with --admin on a fresh database; ownership is handed to insight_app.
 -- ============================================================
 
 create extension if not exists pgcrypto;
 
-create schema if not exists survey;
+create schema if not exists insight_survey;
 
 -- ============================================================
 -- 1. STUDIES
 -- Contenedor analítico/científico superior.
 -- ============================================================
 
-create table intersel_insight.survey_studies (
+create table insight_survey.survey_studies (
     id uuid primary key default gen_random_uuid(),
 
     code text not null unique,
@@ -33,11 +34,11 @@ create table intersel_insight.survey_studies (
 -- Instrumento conceptual perteneciente a un estudio.
 -- ============================================================
 
-create table intersel_insight.survey_instruments (
+create table insight_survey.survey_instruments (
     id uuid primary key default gen_random_uuid(),
 
     study_id uuid not null
-        references intersel_insight.survey_studies(id)
+        references insight_survey.survey_studies(id)
         on delete cascade,
 
     code text not null,
@@ -60,11 +61,11 @@ create table intersel_insight.survey_instruments (
 -- Una versión inmutable/publicable de un instrumento.
 -- ============================================================
 
-create table intersel_insight.survey_instrument_versions (
+create table insight_survey.survey_instrument_versions (
     id uuid primary key default gen_random_uuid(),
 
     instrument_id uuid not null
-        references intersel_insight.survey_instruments(id)
+        references insight_survey.survey_instruments(id)
         on delete cascade,
 
     version text not null,
@@ -92,15 +93,15 @@ create table intersel_insight.survey_instrument_versions (
 -- Estructura jerárquica del cuestionario.
 -- ============================================================
 
-create table intersel_insight.survey_sections (
+create table insight_survey.survey_sections (
     id uuid primary key default gen_random_uuid(),
 
     instrument_version_id uuid not null
-        references intersel_insight.survey_instrument_versions(id)
+        references insight_survey.survey_instrument_versions(id)
         on delete cascade,
 
     parent_section_id uuid
-        references intersel_insight.survey_sections(id)
+        references insight_survey.survey_sections(id)
         on delete cascade,
 
     code text not null,
@@ -121,15 +122,15 @@ create table intersel_insight.survey_sections (
 -- Lo que se presenta conceptualmente al encuestado.
 -- ============================================================
 
-create table intersel_insight.survey_questions (
+create table insight_survey.survey_questions (
     id uuid primary key default gen_random_uuid(),
 
     instrument_version_id uuid not null
-        references intersel_insight.survey_instrument_versions(id)
+        references insight_survey.survey_instrument_versions(id)
         on delete cascade,
 
     section_id uuid
-        references intersel_insight.survey_sections(id)
+        references insight_survey.survey_sections(id)
         on delete set null,
 
     code text not null,
@@ -177,11 +178,11 @@ create table intersel_insight.survey_questions (
 -- Una pregunta puede generar una o varias variables.
 -- ============================================================
 
-create table intersel_insight.survey_variables (
+create table insight_survey.survey_variables (
     id uuid primary key default gen_random_uuid(),
 
     question_id uuid not null
-        references intersel_insight.survey_questions(id)
+        references insight_survey.survey_questions(id)
         on delete cascade,
 
     code text not null,
@@ -221,11 +222,11 @@ create table intersel_insight.survey_variables (
 -- Catálogos y categorías válidas.
 -- ============================================================
 
-create table intersel_insight.survey_answer_options (
+create table insight_survey.survey_answer_options (
     id uuid primary key default gen_random_uuid(),
 
     question_id uuid not null
-        references intersel_insight.survey_questions(id)
+        references insight_survey.survey_questions(id)
         on delete cascade,
 
     code text not null,
@@ -255,15 +256,15 @@ create table intersel_insight.survey_answer_options (
 -- Saltos, visibilidad y requisitos condicionales.
 -- ============================================================
 
-create table intersel_insight.survey_logic_rules (
+create table insight_survey.survey_logic_rules (
     id uuid primary key default gen_random_uuid(),
 
     instrument_version_id uuid not null
-        references intersel_insight.survey_instrument_versions(id)
+        references insight_survey.survey_instrument_versions(id)
         on delete cascade,
 
     source_question_id uuid not null
-        references intersel_insight.survey_questions(id)
+        references insight_survey.survey_questions(id)
         on delete cascade,
 
     operator text not null,
@@ -288,11 +289,11 @@ create table intersel_insight.survey_logic_rules (
 -- Una aplicación/caso/registro del instrumento.
 -- ============================================================
 
-create table intersel_insight.survey_observations (
+create table insight_survey.survey_observations (
     id uuid primary key default gen_random_uuid(),
 
     instrument_version_id uuid not null
-        references intersel_insight.survey_instrument_versions(id)
+        references insight_survey.survey_instrument_versions(id)
         on delete restrict,
 
     external_id text,
@@ -340,15 +341,15 @@ create table intersel_insight.survey_observations (
 -- Valor producido por una variable para una observación.
 -- ============================================================
 
-create table intersel_insight.survey_responses (
+create table insight_survey.survey_responses (
     id uuid primary key default gen_random_uuid(),
 
     observation_id uuid not null
-        references intersel_insight.survey_observations(id)
+        references insight_survey.survey_observations(id)
         on delete cascade,
 
     variable_id uuid not null
-        references intersel_insight.survey_variables(id)
+        references insight_survey.survey_variables(id)
         on delete restrict,
 
     -- Valor exacto recibido de la fuente.
@@ -364,7 +365,7 @@ create table intersel_insight.survey_responses (
 
     -- Para selección única.
     answer_option_id uuid
-        references intersel_insight.survey_answer_options(id)
+        references insight_survey.survey_answer_options(id)
         on delete restrict,
 
     is_missing boolean not null default false,
@@ -398,15 +399,15 @@ create table intersel_insight.survey_responses (
 -- Multi-select y ranking.
 -- ============================================================
 
-create table intersel_insight.survey_response_selections (
+create table insight_survey.survey_response_selections (
     id uuid primary key default gen_random_uuid(),
 
     response_id uuid not null
-        references intersel_insight.survey_responses(id)
+        references insight_survey.survey_responses(id)
         on delete cascade,
 
     answer_option_id uuid not null
-        references intersel_insight.survey_answer_options(id)
+        references insight_survey.survey_answer_options(id)
         on delete restrict,
 
     rank integer,
@@ -429,40 +430,49 @@ create table intersel_insight.survey_response_selections (
 -- ============================================================
 
 create index idx_instruments_study
-    on intersel_insight.survey_instruments(study_id);
+    on insight_survey.survey_instruments(study_id);
 
 create index idx_versions_instrument
-    on intersel_insight.survey_instrument_versions(instrument_id);
+    on insight_survey.survey_instrument_versions(instrument_id);
 
 create index idx_sections_version
-    on intersel_insight.survey_sections(instrument_version_id);
+    on insight_survey.survey_sections(instrument_version_id);
 
 create index idx_questions_version
-    on intersel_insight.survey_questions(instrument_version_id);
+    on insight_survey.survey_questions(instrument_version_id);
 
 create index idx_questions_section
-    on intersel_insight.survey_questions(section_id);
+    on insight_survey.survey_questions(section_id);
 
 create index idx_variables_question
-    on intersel_insight.survey_variables(question_id);
+    on insight_survey.survey_variables(question_id);
 
 create index idx_options_question
-    on intersel_insight.survey_answer_options(question_id);
+    on insight_survey.survey_answer_options(question_id);
 
 create index idx_observations_version
-    on intersel_insight.survey_observations(instrument_version_id);
+    on insight_survey.survey_observations(instrument_version_id);
 
 create index idx_observations_status
-    on intersel_insight.survey_observations(instrument_version_id, status);
+    on insight_survey.survey_observations(instrument_version_id, status);
 
 create index idx_responses_observation
-    on intersel_insight.survey_responses(observation_id);
+    on insight_survey.survey_responses(observation_id);
 
 create index idx_responses_variable
-    on intersel_insight.survey_responses(variable_id);
+    on insight_survey.survey_responses(variable_id);
 
 create index idx_response_selections_response
-    on intersel_insight.survey_response_selections(response_id);
+    on insight_survey.survey_response_selections(response_id);
 
 create index idx_response_selections_option
-    on intersel_insight.survey_response_selections(answer_option_id);
+    on insight_survey.survey_response_selections(answer_option_id);
+
+alter schema insight_survey owner to insight_app;
+do $$
+declare r record;
+begin
+  for r in select tablename from pg_tables where schemaname = 'insight_survey' loop
+    execute format('alter table insight_survey.%I owner to insight_app', r.tablename);
+  end loop;
+end $$;

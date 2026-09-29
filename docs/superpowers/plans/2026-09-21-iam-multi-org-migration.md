@@ -1,5 +1,7 @@
 # IAM Multi-Organization Migration — Implementation Plan
 
+> **Plan histórico, no estado de ejecución.** Verifica cada tarea contra el código y la base requerida antes de continuar. El modelo objetivo designado está en [`../../../ARQUITECTURA_BBDD.md`](../../../ARQUITECTURA_BBDD.md); el mapa del código está en [`../../MAPA_MODULOS.md`](../../MAPA_MODULOS.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add the multi-organization IAM foundation (`platform` schema: `core_*`/`iam_*` tables, roles/permissions, RLS-enforced org isolation) to the live database, and integrate the existing `survey_*` domain (schema `intersel_insight`) under it, without disturbing `survey_*`'s existing data.

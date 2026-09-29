@@ -1,5 +1,7 @@
 # supabase/
 
+> **Documentación de v1, no fuente vigente del esquema.** Este archivo y `supabase/migrations/` contienen referencias al modelo antiguo basado en `tenants`. No aplicar sus pasos como instrucciones para Insight-v2. El modelo objetivo multi-organización está en [`../ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md); los contratos de la aplicación están indexados en [`../docs/MAPA_MODULOS.md`](../docs/MAPA_MODULOS.md).
+
 Esquema, migraciones y tests de la base de datos de Intersel Insight.
 
 - **Project ref:** `kytvxyjvnxamqdrhwezw` · región `us-east-1` · Postgres 17.

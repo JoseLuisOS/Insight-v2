@@ -1,82 +1,155 @@
 @import "tailwindcss";
 
-/* ============================================================================
-   Intersel Insight — design tokens.
-   Brand accent: #4377BC. Semantic tokens (never hardcode colors in components).
-   ============================================================================ */
+/* Insight palette: vivid blue with restrained teal and violet accents. */
 :root {
-  /* Brand scale (azul Intersel) */
-  --brand-50: #eaf1fa;
-  --brand-100: #d6e3f5;
-  --brand-200: #adc7ea;
-  --brand-300: #84abdf;
-  --brand-400: #6b97ce;
-  --brand-500: #4377bc; /* primary accent */
-  --brand-600: #2e5a98;
-  --brand-700: #244873;
-  --brand-800: #1a344f;
-  --brand-900: #11212f;
+  --brand-50: #eef3ff;
+  --brand-100: #dce7ff;
+  --brand-200: #bfd2ff;
+  --brand-300: #96b5ff;
+  --brand-400: #6f94ff;
+  --brand-500: #4b70f5;
+  --brand-600: #3858d8;
+  --brand-700: #2d46b1;
+  --brand-800: #263a88;
+  --brand-900: #202f68;
 
-  /* Functional (accessible) */
+  --accent-teal: #078f87;
+  --accent-violet: #7451d6;
   --success: #15803d;
   --warning: #b45309;
   --danger: #b91c1c;
 
-  /* Semantic surfaces (light) */
-  --background: #ffffff;
-  --foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  /* Light theme: cool porcelain surfaces, high-contrast ink. */
+  --background: #f3f6fb;
+  --foreground: #17243a;
+  --muted: #e9eef6;
+  --muted-foreground: #5d6b80;
   --card: #ffffff;
-  --card-foreground: #0f172a;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: var(--brand-500);
-  --primary: var(--brand-500);
+  --card-foreground: #17243a;
+  --border: #d8e1ee;
+  --input: #cbd7e7;
+  --ring: #4b70f5;
+  --primary: #385fe5;
   --primary-foreground: #ffffff;
+  --surface-header-start: #e7edff;
+  --surface-header-end: #e7f5f4;
+  --surface-header-foreground: #172b49;
+  --surface-header-secondary: #465b78;
+  --surface-header-border: #cfdaed;
+  --shell-header: #f8faff;
+  --sidebar: #142239;
+  --sidebar-foreground: #edf3ff;
+  --sidebar-muted: #aebbd0;
+  --sidebar-hover: rgb(139 169 255 / 0.12);
+  --sidebar-active: rgb(103 137 255 / 0.2);
+  --sidebar-border: rgb(203 218 244 / 0.13);
+  --accent-soft: #e7f5f4;
 }
 
 .light {
-  --background: #ffffff;
-  --foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --background: #f3f6fb;
+  --foreground: #17243a;
+  --muted: #e9eef6;
+  --muted-foreground: #5d6b80;
   --card: #ffffff;
-  --card-foreground: #0f172a;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: var(--brand-500);
-  --primary: var(--brand-500);
+  --card-foreground: #17243a;
+  --border: #d8e1ee;
+  --input: #cbd7e7;
+  --ring: #4b70f5;
+  --primary: #385fe5;
   --primary-foreground: #ffffff;
+  --surface-header-start: #e7edff;
+  --surface-header-end: #e7f5f4;
+  --surface-header-foreground: #172b49;
+  --surface-header-secondary: #465b78;
+  --surface-header-border: #cfdaed;
+  --shell-header: #f8faff;
+  --sidebar: #142239;
+  --sidebar-foreground: #edf3ff;
+  --sidebar-muted: #aebbd0;
+  --sidebar-hover: rgb(139 169 255 / 0.12);
+  --sidebar-active: rgb(103 137 255 / 0.2);
+  --sidebar-border: rgb(203 218 244 / 0.13);
+  --accent-soft: #e7f5f4;
 }
 
 .dark {
-  --background: #0b1220;
-  --foreground: #e2e8f0;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --card: #0f172a;
-  --card-foreground: #e2e8f0;
-  --border: #1e293b;
-  --input: #1e293b;
-  --ring: var(--brand-400);
-  --primary: var(--brand-400);
-  --primary-foreground: #0b1220;
+  --brand-50: #172641;
+  --brand-100: #203357;
+  --brand-200: #304a77;
+  --brand-300: #4969a5;
+  --brand-400: #6685c9;
+  --brand-500: #83a2ff;
+  --brand-600: #9bb4ff;
+  --brand-700: #b4c7ff;
+  --brand-800: #cbd8ff;
+  --brand-900: #e0e8ff;
+  --background: #0a1220;
+  --foreground: #e7edf8;
+  --muted: #172338;
+  --muted-foreground: #a1aec2;
+  --card: #101c2e;
+  --card-foreground: #e7edf8;
+  --border: #24344b;
+  --input: #2b3d56;
+  --ring: #83a2ff;
+  --primary: #83a2ff;
+  --primary-foreground: #111b31;
+  --surface-header-start: #182943;
+  --surface-header-end: #173039;
+  --surface-header-foreground: #edf3ff;
+  --surface-header-secondary: #bdcbe0;
+  --surface-header-border: #2b405d;
+  --shell-header: #101c2e;
+  --sidebar: #0d1727;
+  --sidebar-foreground: #edf3ff;
+  --sidebar-muted: #9daec6;
+  --sidebar-hover: rgb(131 162 255 / 0.11);
+  --sidebar-active: rgb(131 162 255 / 0.19);
+  --sidebar-border: rgb(166 190 226 / 0.13);
+  --accent-soft: #15303a;
+  --accent-teal: #55d5c3;
+  --accent-violet: #a995ff;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background: #0b1220;
-    --foreground: #e2e8f0;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --card: #0f172a;
-    --card-foreground: #e2e8f0;
-    --border: #1e293b;
-    --input: #1e293b;
-    --ring: var(--brand-400);
-    --primary: var(--brand-400);
-    --primary-foreground: #0b1220;
+    --brand-50: #172641;
+    --brand-100: #203357;
+    --brand-200: #304a77;
+    --brand-300: #4969a5;
+    --brand-400: #6685c9;
+    --brand-500: #83a2ff;
+    --brand-600: #9bb4ff;
+    --brand-700: #b4c7ff;
+    --brand-800: #cbd8ff;
+    --brand-900: #e0e8ff;
+    --background: #0a1220;
+    --foreground: #e7edf8;
+    --muted: #172338;
+    --muted-foreground: #a1aec2;
+    --card: #101c2e;
+    --card-foreground: #e7edf8;
+    --border: #24344b;
+    --input: #2b3d56;
+    --ring: #83a2ff;
+    --primary: #83a2ff;
+    --primary-foreground: #111b31;
+    --surface-header-start: #182943;
+    --surface-header-end: #173039;
+    --surface-header-foreground: #edf3ff;
+    --surface-header-secondary: #bdcbe0;
+    --surface-header-border: #2b405d;
+    --shell-header: #101c2e;
+    --sidebar: #0d1727;
+    --sidebar-foreground: #edf3ff;
+    --sidebar-muted: #9daec6;
+    --sidebar-hover: rgb(131 162 255 / 0.11);
+    --sidebar-active: rgb(131 162 255 / 0.19);
+    --sidebar-border: rgb(166 190 226 / 0.13);
+    --accent-soft: #15303a;
+    --accent-teal: #55d5c3;
+    --accent-violet: #a995ff;
   }
 }
 
@@ -105,6 +178,8 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-accent-teal: var(--accent-teal);
+  --color-accent-violet: var(--accent-violet);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -113,6 +188,111 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Shared header surfaces keep the light/dark ink contrast intentional. */
+.insight-card-header,
+.insight-shell-chrome {
+  background-color: var(--shell-header);
+  color: var(--surface-header-foreground);
+  border-color: var(--border);
+}
+
+.insight-card-header {
+  background-image: linear-gradient(112deg, var(--surface-header-start), var(--surface-header-end));
+  border-color: var(--surface-header-border);
+}
+
+.insight-sidebar-surface {
+  background-color: var(--sidebar);
+  color: var(--sidebar-foreground);
+  border-color: var(--sidebar-border);
+}
+
+.insight-card-header .text-muted-foreground,
+.insight-shell-chrome .text-muted-foreground {
+  color: var(--surface-header-secondary);
+}
+
+.insight-shell-chrome .shell-control {
+  color: var(--surface-header-secondary);
+  border-color: var(--border);
+}
+
+.insight-shell-chrome .shell-control:hover {
+  color: var(--primary);
+  background-color: var(--muted);
+}
+
+.insight-shell-chrome .shell-header-item {
+  color: var(--surface-header-secondary);
+}
+
+.insight-shell-chrome .shell-header-item:hover {
+  color: var(--primary);
+  background-color: var(--muted);
+}
+
+.insight-shell-chrome .shell-header-item.is-active {
+  color: var(--primary);
+  background-color: color-mix(in srgb, var(--primary) 14%, transparent);
+  box-shadow: inset 0 -2px 0 var(--primary);
+}
+
+.insight-shell-chrome .text-foreground,
+.insight-shell-chrome .text-card-foreground {
+  color: var(--surface-header-foreground);
+}
+
+.insight-sidebar-surface .text-muted-foreground {
+  color: var(--sidebar-muted);
+}
+
+.insight-sidebar-surface .text-foreground,
+.insight-sidebar-surface .text-card-foreground {
+  color: var(--sidebar-foreground);
+}
+
+.insight-sidebar-surface .text-primary {
+  color: var(--brand-600);
+}
+
+.insight-sidebar-surface .shell-nav-item {
+  color: var(--sidebar-muted);
+}
+
+.insight-sidebar-surface .shell-nav-item:hover,
+.insight-sidebar-surface .shell-nav-item[aria-current="page"],
+.insight-sidebar-surface .shell-nav-item.is-active {
+  color: var(--sidebar-foreground);
+  background-color: var(--sidebar-hover);
+}
+
+.insight-sidebar-surface .shell-nav-item[aria-current="page"],
+.insight-sidebar-surface .shell-nav-item.is-active {
+  background-color: var(--sidebar-active);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.insight-sidebar-surface .shell-icon-tile {
+  border-color: rgb(167 192 235 / 0.28);
+  background: linear-gradient(145deg, rgb(99 126 255 / 0.32), rgb(55 205 188 / 0.2));
+  color: #ffffff;
+}
+
+.insight-sidebar-surface .shell-control {
+  color: var(--sidebar-muted);
+  border-color: var(--sidebar-border);
+}
+
+.insight-sidebar-surface .shell-control:hover {
+  color: var(--sidebar-foreground);
+  background-color: var(--sidebar-hover);
+}
+
+.insight-sidebar-surface .border-t,
+.insight-sidebar-surface .border-b {
+  border-color: var(--sidebar-border);
 }
 
 @keyframes fade-in {

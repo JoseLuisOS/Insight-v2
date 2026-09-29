@@ -1,25 +1,23 @@
 -- scripts/007_public_org_bootstrap_rpc.sql
--- Intersel Insight — public-schema RPC shims over the `platform` schema.
+-- Insight-v2 — public-schema RPC shims over insight_core and insight_iam.
 --
--- Why this exists: the Supabase Data API only exposes `public` and
--- graphql_public (docs/ARQUITECTURA.md §1/§2 — `platform` and
--- `intersel_insight` are not exposed, that's a dashboard-only setting we
--- can't flip via SQL). The Next.js app talks to Postgres exclusively
+-- Why this exists: the Supabase Data API exposes `public`, while the three
+-- insight_* schemas are private to the Data API. The Next.js app talks to Postgres
 -- through supabase-js/PostgREST, so until that's changed, anything the
--- frontend needs from `platform.*` has to go through a `public`-schema
+-- frontend needs from those schemas has to go through a `public`-schema
 -- function it CAN call. These two are SECURITY DEFINER, callable only by
 -- `authenticated`, and never return more than the specific fields needed.
 --
--- MUST run via the ADMIN connection: intersel_insight_app doesn't own
+-- MUST run via the ADMIN connection: insight_app doesn't own
 -- schema `public` (Supabase's default owner there is `postgres`) and has
--- no CREATE privilege on it, only on `platform`/`intersel_insight`.
+-- no CREATE privilege on it, only on the application-owned schemas.
 
-set search_path = intersel_insight, platform, public;
+set search_path = insight_survey, insight_core, insight_iam, public;
 
 do $$
 begin
   begin
-    grant intersel_insight_app to postgres;
+    grant insight_app to postgres;
   exception when duplicate_object or others then null;
   end;
 end $$;
@@ -40,9 +38,9 @@ set search_path = ''
 as $$
   select jsonb_build_object(
     'is_platform_admin', exists (
-      select 1 from platform.iam_platform_admins a where a.user_id = (select auth.uid())
+      select 1 from insight_iam.iam_platform_admins a where a.user_id = (select auth.uid())
     ),
-    'organization_count', (select count(*) from platform.core_organizations)
+    'organization_count', (select count(*) from insight_core.core_organizations)
   );
 $$;
 
@@ -69,11 +67,11 @@ declare
   v_role record;
   v_role_id uuid;
 begin
-  if not exists (select 1 from platform.iam_platform_admins a where a.user_id = v_uid) then
+  if not exists (select 1 from insight_iam.iam_platform_admins a where a.user_id = v_uid) then
     raise exception 'Solo el sysadmin puede crear la organización inicial.';
   end if;
 
-  if exists (select 1 from platform.core_organizations) then
+  if exists (select 1 from insight_core.core_organizations) then
     raise exception 'Ya existe al menos una organización — usa el gestor de organizaciones (próximamente).';
   end if;
 
@@ -82,11 +80,11 @@ begin
     raise exception 'Nombre de organización inválido.';
   end if;
 
-  insert into platform.core_organizations (name, slug, timezone)
+  insert into insight_core.core_organizations (name, slug, timezone)
   values (p_name, v_slug, coalesce(p_timezone, 'America/Hermosillo'))
   returning id into v_org_id;
 
-  insert into platform.iam_organization_memberships (organization_id, user_id, status, joined_at)
+  insert into insight_iam.iam_organization_memberships (organization_id, user_id, status, joined_at)
   values (v_org_id, v_uid, 'active', now())
   returning id into v_membership_id;
 
@@ -96,16 +94,16 @@ begin
       ('analyst', 'Analyst'), ('operator', 'Operator'), ('viewer', 'Viewer')
     ) as r(code, name)
   loop
-    insert into platform.iam_roles (organization_id, code, name, is_system, is_editable)
+    insert into insight_iam.iam_roles (organization_id, code, name, is_system, is_editable)
     values (v_org_id, v_role.code, v_role.name, true, false)
     returning id into v_role_id;
 
     if v_role.code = 'owner' then
-      insert into platform.iam_membership_roles (membership_id, role_id)
+      insert into insight_iam.iam_membership_roles (membership_id, role_id)
       values (v_membership_id, v_role_id);
 
-      insert into platform.iam_role_permissions (role_id, permission_id)
-      select v_role_id, p.id from platform.iam_permissions p;
+      insert into insight_iam.iam_role_permissions (role_id, permission_id)
+      select v_role_id, p.id from insight_iam.iam_permissions p;
     end if;
   end loop;
 
@@ -116,7 +114,7 @@ $$;
 revoke execute on function public.bootstrap_first_organization(text, text) from public, anon;
 grant execute on function public.bootstrap_first_organization(text, text) to authenticated;
 
--- Deliberately left owned by postgres/pg_database_owner: intersel_insight_app
+-- Deliberately left owned by postgres/pg_database_owner: insight_app
 -- has no CREATE on schema public (only postgres does — confirmed the hard
 -- way, ALTER ... OWNER TO requires the new owner to have CREATE on the
 -- target schema), so it can't take ownership here. Future edits to these

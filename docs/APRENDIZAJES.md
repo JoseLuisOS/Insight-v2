@@ -235,3 +235,16 @@ al generarlos). Esto no es retrofiteable — debe diseñarse desde el día uno.
 del allowlist. Ver PLAN.md §6.
 
 ---
+
+## A-0XX — `react-hooks/set-state-in-effect` (eslint-config-next 16) rechaza setState síncrono en efectos
+
+**Contexto:** Al portar componentes de BAIOS (`useEffect(() => setX(...), [])`) el lint falla.
+
+**Aprendizaje:** Para leer estado externo del DOM/navegador usa `useSyncExternalStore`
+(con snapshot de servidor para hidratación); para reaccionar a cambios de prop/ruta, ajusta
+estado durante el render (`if (prev !== value) { setPrev(value); ... }`); para timers, llama
+`setState` dentro del callback del `setTimeout`/`setInterval`.
+
+**Cómo aplicarlo:** Ver `theme-toggle.tsx`, `mobile-nav-context.tsx`, `reload-button.tsx`.
+
+---

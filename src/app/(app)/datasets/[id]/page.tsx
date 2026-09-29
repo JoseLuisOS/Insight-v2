@@ -105,7 +105,7 @@ export default async function DatasetDetailPage({
       {!queryError && (
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
-            <thead className="bg-muted">
+            <thead className="insight-card-header text-left text-xs font-semibold">
               <tr>
                 {columns.map((c) => (
                   <th

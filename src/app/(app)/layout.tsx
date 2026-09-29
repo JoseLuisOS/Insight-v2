@@ -1,8 +1,33 @@
-import Link from "next/link";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { Brand } from "@/components/brand";
+import { MobileModulesDrawer } from "@/components/navigation/mobile-modules-drawer";
+import { MobileNavProvider } from "@/components/navigation/mobile-nav-context";
+import { MobileModuleBar } from "@/components/navigation/mobile-module-bar";
+import { PanelHeader } from "@/components/navigation/panel-header";
+import {
+  PanelHeaderProvider,
+  PanelReloadBoundary,
+} from "@/components/navigation/panel-header-context";
+import type { ShellUser } from "@/components/navigation/session-account-footer";
+import {
+  Sidebar,
+  SIDEBAR_GROUPS_KEY,
+  SIDEBAR_RAIL_KEY,
+} from "@/components/navigation/sidebar";
 import { getProfileContext } from "@/lib/auth";
+import { isSysadmin, listCatalog, userCatalogAccess } from "@/lib/insight-catalog";
+import { NAV } from "@/lib/nav";
 import { createClient } from "@/lib/supabase/server";
+
+function parseCollapsed(raw: string | undefined): Record<string, boolean> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
 
 export default async function AppLayout({
   children,
@@ -11,108 +36,71 @@ export default async function AppLayout({
 }) {
   const { user, profile } = await getProfileContext();
   if (!user) redirect("/login");
+  const admin = await isSysadmin(user.id);
+  const [access, catalog] = await Promise.all([userCatalogAccess(user.id, admin), listCatalog()]);
+  const registeredItems = NAV.flatMap((group) => group.items);
+  const catalogNav = catalog.groups.map((group) => {
+    const fallback = NAV.find((item) => item.code === group.code);
+    return {
+      label: group.name,
+      code: group.code,
+      icon: group.icon ?? fallback?.icon,
+      collapsible: fallback?.collapsible,
+      items: catalog.modules.filter((module) => module.group_code === group.code && access.has(module.code))
+        .map((module) => {
+          const registered = registeredItems.find((item) => item.code === module.code);
+          return registered ? { ...registered, label: module.name, icon: module.icon ?? registered.icon } : null;
+        }).filter((item) => item !== null),
+    };
+  })
+    .filter((group) => group.items.length > 0 || (admin && group.code === "administracion"));
+  const controlItems = NAV.find((group) => group.code === "administracion")!.items.filter((item) => ["insight_roles", "insight_permissions"].includes(item.code ?? ""));
+  const visibleCatalogNav = admin
+    ? catalogNav.map((group) => group.code === "administracion" ? { ...group, items: [...group.items, ...controlItems] } : group)
+    : catalogNav;
+  // Insight is the sysadmin control plane, outside the managed catalog.
+  const nav = admin ? [...visibleCatalogNav, NAV.find((group) => group.code === "insight")!] : visibleCatalogNav;
 
-  // Organizations are admin-assigned, not self-service (see
-  // docs/LOG.md 2026-09-22). The only case that still routes through
-  // /onboarding is a genuinely empty installation — zero organizations
-  // exist yet — and only for the platform admin who's allowed to bootstrap
-  // the first one. Everyone else goes straight into the app; per-route
-  // membership enforcement is separate, tracked work (docs/ARQUITECTURA.md §5).
   const supabase = await createClient();
-  const { data: status } = await supabase.rpc("get_org_bootstrap_status");
-  if (status?.organization_count === 0 && status?.is_platform_admin) {
-    redirect("/onboarding");
-  }
+
+  // Name/avatar live in insight_core.core_user_profiles (scripts/008).
+  const { data: myProfile } = (await supabase
+    .rpc("get_my_profile")
+    .maybeSingle()) as {
+    data: { display_name: string | null; avatar_url: string | null } | null;
+  };
+
+  const shellUser: ShellUser = {
+    name: myProfile?.display_name || profile?.display_name || user.email || null,
+    avatarUrl: myProfile?.avatar_url ?? null,
+    orgName: profile?.tenants?.name ?? null,
+  };
+
+  // Sidebar state is persisted in cookies so the first paint already matches.
+  const cookieStore = await cookies();
+  const initialRail = cookieStore.get(SIDEBAR_RAIL_KEY)?.value === "true";
+  const initialCollapsed = parseCollapsed(cookieStore.get(SIDEBAR_GROUPS_KEY)?.value);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-border bg-card px-6 py-3">
-        <div className="flex items-center gap-8">
-          <Brand />
-          <nav className="flex items-center gap-1 text-sm">
-            <Link
-              href="/dashboard"
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              Inicio
-            </Link>
-            <Link
-              href="/dashboards"
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              Dashboards
-            </Link>
-            <Link
-              href="/datasets"
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              Datasets
-            </Link>
-            <Link
-              href="/sources"
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              Fuentes
-            </Link>
-            <Link
-              href="/charts"
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              Gráficas
-            </Link>
-            <Link
-              href="/metrics"
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              Métricas
-            </Link>
-            <Link
-              href="/sql"
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              SQL Lab
-            </Link>
-            <Link
-              href="/themes"
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              Temas
-            </Link>
-            <Link
-              href="/maps"
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              Mapas
-            </Link>
-            <Link
-              href="/team"
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              Equipo
-            </Link>
-          </nav>
+    <MobileNavProvider>
+      <PanelHeaderProvider>
+        <div className="flex h-dvh overflow-hidden bg-background">
+          <Sidebar
+            nav={nav}
+            user={shellUser}
+            initialRail={initialRail}
+            initialCollapsed={initialCollapsed}
+          />
+          <MobileModulesDrawer nav={nav} user={shellUser} />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <PanelHeader nav={nav} />
+            <main className="min-h-0 flex-1 overflow-y-auto">
+              <PanelReloadBoundary className="px-6 py-8">{children}</PanelReloadBoundary>
+            </main>
+            <MobileModuleBar nav={nav} />
+          </div>
         </div>
-        <div className="flex items-center gap-4 text-sm">
-          <Link href="/profile" className="text-right transition hover:opacity-70">
-            <div className="font-medium text-card-foreground">
-              {profile?.tenants?.name ?? "Intersel Insight"}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {profile?.display_name ?? user.email}
-              {profile?.role ? ` · ${profile.role}` : ""}
-            </div>
-          </Link>
-          <form action="/auth/signout" method="post">
-            <button
-              type="submit"
-              className="rounded-md border border-border px-3 py-1.5 text-sm transition hover:bg-muted"
-            >
-              Salir
-            </button>
-          </form>
-        </div>
-      </header>
-      <main className="flex-1 px-6 py-8">{children}</main>
-    </div>
+      </PanelHeaderProvider>
+    </MobileNavProvider>
   );
 }

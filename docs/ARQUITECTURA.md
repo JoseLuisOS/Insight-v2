@@ -1,16 +1,6 @@
-# Intersel Insight — Arquitectura
-
-Documento vivo. Fuente de verdad **actual** de arquitectura (reemplaza a `docs/PLAN.md` como
-tal — ver nota de vigencia abajo). Se llena por secciones conforme cada pieza se libera; una
-sección marcada `pendiente` documenta la intención pero aún no está implementada.
-
-> **Nota de vigencia:** `docs/PLAN.md` documentaba una arquitectura multi-tenant clásica
-> (tabla `tenants`, proyecto Supabase `kytvxyjvnxamqdrhwezw`, 23 migraciones en
-> `supabase/migrations/`). El 2026-09-21 se decidió reemplazarla por el modelo
-> **multi-organización** descrito en [`ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md) (raíz
-> del repo), sobre la base de datos ya existente documentada en `.env`. `PLAN.md` sigue siendo
-> válido para lo que no depende del modelo de datos/tenencia (idioma, marca, stack, Next 16);
-> para tenencia, IAM y seguridad de datos, **este documento manda**.
+> **Estado: referencia histórica, no vigente.** El contenido de este archivo no se ha validado y puede contradecir el código y las decisiones actuales. No asumir que sus datos de infraestructura, base de datos, IAM, seguridad o estado de implementación son correctos.
+>
+> Para el modelo objetivo multi-organización, consulta [`ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md). Para ubicar la implementación actual, consulta [`MAPA_MODULOS.md`](MAPA_MODULOS.md) y verifica el código. El resto de este archivo se conserva solo como material pendiente de revisión.
 
 ## Índice
 

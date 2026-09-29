@@ -7,45 +7,45 @@
 --   - All survey_* demo rows (they FK to core_organizations with RESTRICT,
 --     not CASCADE, so the org can't be deleted while they reference it —
 --     this is the "Demo Seed V2" data from scripts/002, fully reproducible)
---   - The organization itself (platform.core_organizations), which CASCADEs
+--   - The organization itself (insight_core.core_organizations), which CASCADEs
 --     to iam_organization_memberships, iam_roles, iam_role_permissions,
 --     iam_membership_roles, iam_resources, iam_resource_permissions
 --   - The test user's core_user_profiles row
 --
 -- Keeps:
---   - platform.iam_platform_admins (the sysadmin flag itself — without it
+--   - insight_iam.iam_platform_admins (the sysadmin flag itself — without it
 --     nobody could ever pass the bootstrap_first_organization() check)
---   - platform.iam_modules / iam_permissions (shared catalog, not org data)
+--   - insight_iam.iam_modules / iam_permissions (shared catalog, not org data)
 --
 -- Does NOT touch auth.users / passwords — see scripts/create_user.js for
 -- resetting the temp password + must_change_password flag.
 --
--- Runs via --app.
+-- Runs with the default insight_app connection.
 
-set search_path = intersel_insight, platform, public;
+set search_path = insight_survey, insight_core, insight_iam, public;
 
 -- survey_* in dependency order (children before parents; several of these
 -- FKs are ON DELETE RESTRICT, not CASCADE — see scripts/001).
-delete from intersel_insight.survey_response_selections;
-delete from intersel_insight.survey_responses;
-delete from intersel_insight.survey_observations;
-delete from intersel_insight.survey_logic_rules;
-delete from intersel_insight.survey_answer_options;
-delete from intersel_insight.survey_variables;
-delete from intersel_insight.survey_questions;
-delete from intersel_insight.survey_sections;
-delete from intersel_insight.survey_instrument_versions;
-delete from intersel_insight.survey_instruments;
-delete from intersel_insight.survey_studies;
+delete from insight_survey.survey_response_selections;
+delete from insight_survey.survey_responses;
+delete from insight_survey.survey_observations;
+delete from insight_survey.survey_logic_rules;
+delete from insight_survey.survey_answer_options;
+delete from insight_survey.survey_variables;
+delete from insight_survey.survey_questions;
+delete from insight_survey.survey_sections;
+delete from insight_survey.survey_instrument_versions;
+delete from insight_survey.survey_instruments;
+delete from insight_survey.survey_studies;
 
 -- The user's profile row (harmless to drop — nothing reads it yet).
-delete from platform.core_user_profiles;
+delete from insight_core.core_user_profiles;
 
--- The organization itself — cascades the rest of the org-scoped platform.* tables.
-delete from platform.core_organizations;
+-- The organization itself — cascades the remaining organization-scoped tables.
+delete from insight_core.core_organizations;
 
 select
-  (select count(*) from platform.core_organizations) as orgs,
-  (select count(*) from platform.iam_organization_memberships) as memberships,
-  (select count(*) from platform.iam_platform_admins) as platform_admins,
-  (select count(*) from intersel_insight.survey_studies) as survey_studies;
+  (select count(*) from insight_core.core_organizations) as orgs,
+  (select count(*) from insight_iam.iam_organization_memberships) as memberships,
+  (select count(*) from insight_iam.iam_platform_admins) as platform_admins,
+  (select count(*) from insight_survey.survey_studies) as survey_studies;

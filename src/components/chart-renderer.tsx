@@ -185,7 +185,7 @@ export function ChartRenderer({
           style={{ maxHeight: height }}
         >
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-muted">
+            <thead className="insight-card-header sticky top-0 text-left text-xs font-semibold">
               <tr>
                 {cols.map((c) => (
                   <th key={c} className="whitespace-nowrap px-3 py-2 text-left font-medium">

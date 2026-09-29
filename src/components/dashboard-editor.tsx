@@ -156,7 +156,7 @@ export function DashboardEditor({
                   key={it.id}
                   className="overflow-hidden rounded-lg border border-border bg-card"
                 >
-                  <div className="drag-handle flex cursor-move items-center justify-between border-b border-border bg-muted px-3 py-1.5">
+                  <div className="insight-card-header drag-handle flex cursor-move items-center justify-between border-b px-3 py-1.5">
                     <span className="truncate text-sm font-medium">{it.name}</span>
                     <button
                       onClick={() => removeChart(it.id)}
