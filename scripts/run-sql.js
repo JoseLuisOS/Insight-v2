@@ -1,7 +1,7 @@
 // scripts/run-sql.js
 // Runs a .sql file against the Insight-v2 database.
 // Usage: node scripts/run-sql.js <path/to/file.sql> [--admin]
-//   (default) app connection (APP_DATABASE_URL, role insight_app).
+//   (default) app connection (APP_DATABASE_POOLER or APP_DATABASE_URL, role insight_app).
 //   --admin   reserved for DBA operations that require CENTRAL_DATABASE_URL,
 //             such as creating roles or objects referencing auth.users.
 const fs = require('fs');
@@ -18,9 +18,9 @@ if (!file || file.startsWith('--') || process.argv.slice(3).some((arg) => arg !=
   process.exit(1);
 }
 
-const connStr = useAdmin ? process.env.CENTRAL_DATABASE_URL : process.env.APP_DATABASE_URL;
+const connStr = useAdmin ? process.env.CENTRAL_DATABASE_URL : (process.env.APP_DATABASE_POOLER || process.env.APP_DATABASE_URL);
 if (!connStr) {
-  console.error(`Missing ${useAdmin ? 'CENTRAL_DATABASE_URL' : 'APP_DATABASE_URL'} in .env`);
+  console.error(`Missing ${useAdmin ? 'CENTRAL_DATABASE_URL' : 'APP_DATABASE_POOLER/APP_DATABASE_URL'} in .env`);
   process.exit(1);
 }
 

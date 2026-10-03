@@ -55,7 +55,7 @@ export async function userCatalogAccess(userId: string, admin: boolean): Promise
   for (const row of rows) {
     if (admin) {
       if (row.group_state !== "apagado" && row.module_state !== "apagado") access.add(row.code);
-    } else if (row.can_operate && row.group_state === "disponible" && row.module_state === "disponible") {
+    } else if (!["insight_roles", "insight_permissions"].includes(row.code) && row.can_operate && row.group_state === "disponible" && row.module_state === "disponible") {
       access.add(row.code);
     }
   }
@@ -93,7 +93,7 @@ export function validateInput(value: unknown, kind: "group" | "module", create: 
   if (create) {
     const code = catalogCodeFromName(out.name ?? "");
     if (!/^[a-z0-9_]{2,40}$/.test(code)) throw new Error("No se pudo generar un ID válido a partir del nombre.");
-    if ((kind === "group" && code === "insight") || (kind === "module" && ["insight_catalog", "insight_permissions"].includes(code))) throw new Error("ID reservado para administración de la plataforma.");
+    if ((kind === "group" && code === "insight") || (kind === "module" && ["insight_catalog", "insight_organizations"].includes(code))) throw new Error("ID reservado para administración de la plataforma.");
     out.code = code;
   }
   for (const key of ["description", "icon"] as const) {
@@ -123,7 +123,7 @@ export function validateInput(value: unknown, kind: "group" | "module", create: 
 }
 
 export async function saveCatalog(kind: "group" | "module", input: CatalogInput, actorId: string, code?: string) {
-  if ((kind === "group" && code === "insight") || (kind === "module" && ["insight_catalog", "insight_permissions"].includes(code ?? ""))) throw new Error("El panel de administración no se puede editar desde el catálogo.");
+  if ((kind === "group" && code === "insight") || (kind === "module" && ["insight_catalog", "insight_organizations"].includes(code ?? ""))) throw new Error("El panel de administración no se puede editar desde el catálogo.");
   const table = kind === "group" ? "insight_core.app_groups" : "insight_core.app_modules";
   const client = await insightDb().connect();
   try {

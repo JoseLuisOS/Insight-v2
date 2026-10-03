@@ -18,6 +18,8 @@ import { getProfileContext } from "@/lib/auth";
 import { isSysadmin, listCatalog, userCatalogAccess } from "@/lib/insight-catalog";
 import { NAV } from "@/lib/nav";
 import { createClient } from "@/lib/supabase/server";
+import { getViewedUser } from "@/lib/view-as";
+import { ViewAsBanner } from "@/components/insight/view-as-banner";
 
 function parseCollapsed(raw: string | undefined): Record<string, boolean> {
   if (!raw) return {};
@@ -37,7 +39,11 @@ export default async function AppLayout({
   const { user, profile } = await getProfileContext();
   if (!user) redirect("/login");
   const admin = await isSysadmin(user.id);
+  const viewedUser = admin ? await getViewedUser(user.id) : null;
   const [access, catalog] = await Promise.all([userCatalogAccess(user.id, admin), listCatalog()]);
+  if (viewedUser) {
+    for (const code of await userCatalogAccess(viewedUser.userId, false)) access.add(code);
+  }
   const registeredItems = NAV.flatMap((group) => group.items);
   const catalogNav = catalog.groups.map((group) => {
     const fallback = NAV.find((item) => item.code === group.code);
@@ -49,17 +55,15 @@ export default async function AppLayout({
       items: catalog.modules.filter((module) => module.group_code === group.code && access.has(module.code))
         .map((module) => {
           const registered = registeredItems.find((item) => item.code === module.code);
-          return registered ? { ...registered, label: module.name, icon: module.icon ?? registered.icon } : null;
-        }).filter((item) => item !== null),
+          return registered
+            ? { ...registered, label: module.name, icon: module.icon ?? registered.icon }
+            : { label: module.name, href: `/workspace/${encodeURIComponent(module.code)}`, icon: module.icon ?? undefined, code: module.code };
+        }),
     };
   })
     .filter((group) => group.items.length > 0 || (admin && group.code === "administracion"));
-  const controlItems = NAV.find((group) => group.code === "administracion")!.items.filter((item) => ["insight_roles", "insight_permissions"].includes(item.code ?? ""));
-  const visibleCatalogNav = admin
-    ? catalogNav.map((group) => group.code === "administracion" ? { ...group, items: [...group.items, ...controlItems] } : group)
-    : catalogNav;
   // Insight is the sysadmin control plane, outside the managed catalog.
-  const nav = admin ? [...visibleCatalogNav, NAV.find((group) => group.code === "insight")!] : visibleCatalogNav;
+  const nav = admin ? [...catalogNav, NAV.find((group) => group.code === "insight")!] : catalogNav;
 
   const supabase = await createClient();
 
@@ -93,6 +97,7 @@ export default async function AppLayout({
           />
           <MobileModulesDrawer nav={nav} user={shellUser} />
           <div className="flex min-w-0 flex-1 flex-col">
+            {viewedUser && <ViewAsBanner identifier={viewedUser.email ?? viewedUser.name} organization={viewedUser.organizationName} />}
             <PanelHeader nav={nav} />
             <main className="min-h-0 flex-1 overflow-y-auto">
               <PanelReloadBoundary className="px-6 py-8">{children}</PanelReloadBoundary>

@@ -5,5 +5,5 @@ import { currentSysadmin, listCatalog } from "@/lib/insight-catalog";
 export default async function InsightModulesPage() {
   if (!await currentSysadmin()) redirect("/dashboard");
   const catalog = await listCatalog();
-  return <CatalogManager initialGroups={catalog.groups} initialModules={catalog.modules} />;
+  return <CatalogManager key={JSON.stringify(catalog)} initialGroups={catalog.groups} initialModules={catalog.modules} />;
 }

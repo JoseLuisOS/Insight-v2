@@ -54,6 +54,7 @@ begin
       left join insight_iam.iam_membership_roles mr on mr.membership_id = m.id
       left join insight_iam.iam_roles r on r.id = mr.role_id
      where m.organization_id = p_org
+       and not exists (select 1 from insight_iam.iam_platform_admins a where a.user_id = m.user_id)
      group by m.user_id, u.email, p.display_name, m.status, m.created_at
      order by m.created_at;
 end $$;
@@ -84,6 +85,9 @@ begin
   end if;
   if not exists (select 1 from auth.users where id = p_user_id) then
     raise exception 'El usuario no existe.';
+  end if;
+  if exists (select 1 from insight_iam.iam_platform_admins where user_id = p_user_id) then
+    raise exception 'La cuenta maestra queda fuera de Usuarios.';
   end if;
   if exists (select 1 from insight_iam.iam_organization_memberships where organization_id = p_org and user_id = p_user_id) then
     raise exception 'Ya es miembro de esta organización.';

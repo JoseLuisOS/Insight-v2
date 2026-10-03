@@ -38,6 +38,12 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    label: "Encuestas",
+    code: "encuestas",
+    icon: "ClipboardList",
+    items: [{ label: "Encuestas", href: "/surveys", icon: "ClipboardList", code: "encuestas" }],
+  },
+  {
     label: "Visualización",
     code: "visualizacion",
     icon: "ChartNoAxesCombined",
@@ -62,7 +68,10 @@ export const NAV: NavGroup[] = [
     label: "Insight",
     code: "insight",
     icon: "Boxes",
-    items: [{ label: "Componentes", href: "/insight/modules", icon: "Boxes", code: "insight_catalog" }],
+    items: [
+      { label: "Componentes", href: "/insight/modules", icon: "Boxes", code: "insight_catalog" },
+      { label: "Organizaciones", href: "/insight/organizations", icon: "Building2", code: "insight_organizations" },
+    ],
   },
 ];
 

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { currentSysadmin } from "@/lib/insight-catalog";
+import { currentSysadmin, userCatalogAccess } from "@/lib/insight-catalog";
 import { createManagedPermissions, deleteManagedPermission, listManagedPermissions, updateManagedPermission } from "@/lib/insight-permissions";
 
-async function authorized() { return Boolean(await currentSysadmin()); }
+async function authorized() { const id = await currentSysadmin(); return Boolean(id && (await userCatalogAccess(id, true)).has("insight_permissions")); }
 const forbidden = () => NextResponse.json({ error: "Acceso exclusivo de sysadmin." }, { status: 403 });
 
 export async function GET() {

@@ -53,7 +53,9 @@ export async function memberRoleIds(orgId: string): Promise<{ user_id: string; r
     coalesce(array_agg(mr.role_id::text) filter (where mr.role_id is not null), '{}') as role_ids
     from insight_iam.iam_organization_memberships m
     left join insight_iam.iam_membership_roles mr on mr.membership_id = m.id
-    where m.organization_id = $1 group by m.user_id`, [orgId]);
+    where m.organization_id = $1
+      and not exists (select 1 from insight_iam.iam_platform_admins a where a.user_id = m.user_id)
+    group by m.user_id`, [orgId]);
   return rows;
 }
 
@@ -128,7 +130,7 @@ type PgClient = Awaited<ReturnType<ReturnType<typeof insightDb>["connect"]>>;
 async function ensureManageableMember(client: PgClient, orgId: string, membershipId: string, targetUserId: string, actorId: string) {
   const admins = await client.query("select user_id from insight_iam.iam_platform_admins where user_id in ($1, $2) and role = 'sysadmin'", [actorId, targetUserId]);
   const actorAdmin = admins.rows.some((row: { user_id: string }) => row.user_id === actorId);
-  if (admins.rows.some((row: { user_id: string }) => row.user_id === targetUserId) && !actorAdmin) throw new Error("Solo sysadmin puede administrar a otro sysadmin.");
+  if (admins.rows.some((row: { user_id: string }) => row.user_id === targetUserId)) throw new Error("La cuenta maestra no se administra desde Usuarios.");
   const owner = await client.query("select id from insight_iam.iam_roles where organization_id = $1 and code = 'owner'", [orgId]);
   if (!owner.rows.length || actorAdmin) return actorAdmin;
   const targetOwner = await client.query("select 1 from insight_iam.iam_membership_roles where membership_id = $1 and role_id = $2", [membershipId, owner.rows[0].id]);
@@ -174,6 +176,7 @@ export async function resetMemberPassword(orgId: string, userId: string) {
   const actor = await authorize(orgId, "members.update");
   if (!await isSysadmin(actor)) throw new Error("Solo sysadmin puede restablecer una contraseña global.");
   if (actor === userId) throw new Error("Cambia tu contraseña desde Perfil.");
+  if (await isSysadmin(userId)) throw new Error("La cuenta maestra no se administra desde Usuarios.");
   const { rows } = await insightDb().query("select 1 from insight_iam.iam_organization_memberships where organization_id = $1 and user_id = $2", [orgId, userId]);
   if (!rows.length) throw new Error("El usuario ya no pertenece a esta organización.");
   const admin = createAdminClient();

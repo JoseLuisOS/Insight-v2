@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Boxes, Check, ChevronRight, CircleDashed, Layers3, Pencil, Plus, ShieldCheck, Sparkles, X } from "lucide-react";
 import { NAV_ICONS, NavIcon } from "@/components/navigation/nav-icon";
@@ -45,8 +45,6 @@ export function CatalogManager({ initialGroups, initialModules }: { initialGroup
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => setGroups(initialGroups), [initialGroups]);
-  useEffect(() => setModules(initialModules), [initialModules]);
   const selected = groups.find((group) => group.code === selectedCode) ?? groups[0];
   const groupModules = selected ? modules.filter((row) => row.group_code === selected.code) : [];
   const availableCount = modules.filter((row) => row.state === "disponible").length;
@@ -79,7 +77,7 @@ export function CatalogManager({ initialGroups, initialModules }: { initialGroup
         <div>
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[.16em] text-blue-100"><Sparkles size={13} /> Insight · Control de plataforma</div>
           <h1 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">Arquitectura de grupos y módulos</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100/80">Organiza los grupos de la aplicación, sus módulos y su disponibilidad para cada organización.</p>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100/80">Organiza los grupos de la aplicación, sus módulos y su disponibilidad en la plataforma.</p>
           <div className="mt-5 flex items-center gap-2 text-xs text-blue-100/75"><ShieldCheck size={15} className="text-blue-200" /> Acceso exclusivo de sysadmin · Este panel siempre está disponible</div>
         </div>
         <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-[#10233c] shadow-lg shadow-black/10 transition hover:bg-blue-50" onClick={() => setEditing({ kind: "group" })}><Plus size={17} /> Nuevo grupo <ArrowUpRight size={15} className="opacity-60" /></button>

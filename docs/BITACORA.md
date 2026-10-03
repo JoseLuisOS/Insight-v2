@@ -1,5 +1,68 @@
 # Bitácora de desarrollo — Insight-v2
 
+## 2026-10-02 — Prefijos, códigos y versiones de Encuestas
+
+- **¿Qué?**
+  - Se agregó el prefijo editable durante el alta de organizaciones, dos secuencias globales independientes por organización y la generación automática de códigos de estudio e instrumento. La carga solicita una versión entera, conserva la subversión en base y señala las cargas duplicadas.
+- **¿Por qué?**
+  - Los códigos manuales permitían inconsistencias y el flujo no distinguía versiones de un instrumento existente.
+- **¿Para qué?**
+  - Reutilizar estudio e instrumento por nombre, mantener sus códigos y crear nuevas versiones sin repetir la misma encuesta y versión en una organización.
+
+## 2026-10-02 — Corrección de Ver Como
+
+- **¿Qué?**
+  - Se corrigió la validación de UUID y se colocó la banda de la máscara encima de la cabecera, con el correo y la acción «Salir».
+- **¿Por qué?**
+  - La validación rechazaba IDs válidos y el indicador ocupaba más espacio del solicitado.
+- **¿Para qué?**
+  - Permitir activar la máscara y mantener su identidad visible sin desplazar el contenido del panel.
+
+## 2026-10-02 — Ver Como en Usuarios
+
+- **¿Qué?**
+  - Se añadió la acción Ver Como para Sysadmin en miembros activos, con contexto visible y salida desde el shell.
+- **¿Por qué?**
+  - Sysadmin necesita revisar la experiencia de un miembro sin perder sus facultades de administración.
+- **¿Para qué?**
+  - Identificar el usuario y la organización bajo revisión mientras las operaciones siguen atribuidas a la cuenta real.
+
+## 2026-09-29 — Carga reutilizable de Encuestas
+
+- **¿Qué?**
+  - Se añadió la carga de XLSX con validación previa, confirmación de advertencias, cola persistente y trabajador separado. Se aplicó `scripts/021_survey_import_jobs.sql`.
+- **¿Por qué?**
+  - Los archivos HCV tardan varios minutos en importarse y la carga puntual no servía para otros cuestionarios del mismo formato.
+- **¿Para qué?**
+  - Incorporar nuevos instrumentos desde la app sin mantener abierta la petición web y consultar el resultado o error de cada tarea.
+
+## 2026-09-29 — Consulta de respuestas de Encuestas
+
+- **¿Qué?**
+  - Se añadió la vista de registros paginados, búsqueda por ID externo y detalle de respuestas de la versión vigente.
+- **¿Por qué?**
+  - Los cuestionarios HCV 2025 ya estaban cargados, pero sus respuestas individuales no podían revisarse desde el módulo.
+- **¿Para qué?**
+  - Auditar registros y valores originales desde la aplicación con los mismos permisos de organización y recurso que el instrumento.
+
+## 2026-09-29 — Carga de cuestionarios HCV 2025
+
+- **¿Qué?**
+  - Se importaron los cuestionarios A y B como dos instrumentos de un estudio, con 3,231 observaciones y 689,036 respuestas. Se añadió un importador reproducible y un registro de validación y procedencia.
+- **¿Por qué?**
+  - Los archivos son el primer entregable real de Encuestas y A contenía dos bloques de valores en distinto orden al de sus encabezados.
+- **¿Para qué?**
+  - Consultar ambos cuestionarios desde el módulo y preservar respuestas y origen para las siguientes funciones de análisis.
+
+## 2026-09-29 — Primera entrega de Encuestas
+
+- **¿Qué?**
+  - Se creó el grupo y módulo Encuestas, con catálogo por organización y detalle de instrumentos, cuestionarios y versiones. Se aplicó `scripts/020_survey_catalog.sql`.
+- **¿Por qué?**
+  - El dominio de encuestas necesitaba navegación y consulta propias antes de cargar los cuestionarios A y B de HCV 2025.
+- **¿Para qué?**
+  - Revisar el demo vigente desde la app y disponer de una base de interfaz y autorización para la importación posterior.
+
 ## 2026-09-28 — Administrador de módulos Insight
 
 - **¿Qué?**
@@ -280,3 +343,39 @@ Registro de cambios del producto y de su documentación operativa. Se conserva c
   - Los selects nativos no seguían la convención de filtros de Administración.
 - **¿Para qué?**
   - Encontrar miembros con opciones disponibles y menos ruido visual.
+
+## 2026-09-29 — Organización única y cuenta maestra
+
+- **¿Qué?**
+  - Se conservó la organización de José Luis, se retiró la sembrada y se fijó un único `sysadmin` global fuera de Usuarios.
+- **¿Por qué?**
+  - Había dos organizaciones Hermosillo y la cuenta maestra aparecía como miembro ordinario.
+- **¿Para qué?**
+  - Mantener el acceso global separado de los roles y operaciones de cada organización.
+
+## 2026-09-29 — Organizaciones y alta completa de módulos
+
+- **¿Qué?**
+  - Se agregó Organizaciones a Insight y se retiró su placeholder antiguo; Roles y Permisos entraron en Componentes, y los módulos nuevos reciben `operar`, enlace de menú y área provisional.
+- **¿Por qué?**
+  - El catálogo no controlaba esos módulos y descartaba del menú cualquier ID sin ruta programada.
+- **¿Para qué?**
+  - Administrar organizaciones y publicar la estructura de un módulo desde su creación, antes de implementar su funcionalidad.
+
+## 2026-09-29 — Carga autónoma de encuestas
+
+- **¿Qué?**
+  - La carga admite TXT, CSV, XLSX, XLS, ODS y JSON; usa la primera hoja, vista previa y reasignación de columnas. El archivo sube a Storage privado y un Workflow procesa los registros en bloques transaccionales.
+- **¿Por qué?**
+  - La aplicación se ejecuta sin trabajador permanente y los archivos reales pueden carecer de diccionario o variar el orden de columnas.
+- **¿Para qué?**
+  - Iniciar cargas bajo demanda, revisar la correspondencia de respuestas antes de guardar y retomar pasos sin duplicar registros.
+
+## 2026-10-02 — Manual técnico de carga de Encuestas
+
+- **¿Qué?**
+  - Se documentaron validaciones por formato, contratos de entrada, pasos de Workflow, tablas, controles de acceso, diagnóstico y límites operativos.
+- **¿Por qué?**
+  - El flujo tiene particularidades por formato y detalles de operación que no estaban reunidos en un manual técnico.
+- **¿Para qué?**
+  - Permitir que desarrollo y operación preparen archivos, interpreten fallos y comprendan el recorrido de los datos desde la subida hasta su publicación.

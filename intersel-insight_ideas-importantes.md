@@ -1,0 +1,77 @@
+# Ideas importantes surgidas — Intersel Insight / HCV
+
+- Diseñar Intersel Insight como **multi-organización desde el núcleo**, aunque inicialmente solo opere con Hermosillo ¿Cómo Vamos?.
+- Diferenciar claramente **multitenancy** de **roles/permisos**:
+  - Multi-organización define **a quién pertenecen los datos**.
+  - Roles y permisos definen **qué puede hacer cada usuario**.
+- Mantener una sola **codebase** que pueda desplegarse en distintas instalaciones.
+- No usar `installation_id`; la instalación se considera el propio deployment.
+- Dentro de cada instalación, `organization_id` será la frontera principal de aislamiento.
+- Permitir que una misma persona pertenezca a **más de una organización**.
+- Mantener `users` como identidad global a la instalación y modelar la pertenencia mediante una tabla de **memberships**.
+- No guardar el rol principal directamente en `users`.
+- Permitir que un mismo usuario tenga **roles distintos en organizaciones diferentes**.
+- Separar el **sysadmin / god mode** de los roles empresariales normales.
+- El sysadmin debe tener alcance de **toda la instalación**, no de una organización concreta.
+- Crear administradores o responsables de organización mediante roles de alcance organizacional, no mediante tipos especiales de usuario.
+- Modelar permisos por **módulo / acción**, no solo con flags genéricos.
+- Ejemplos de permisos atómicos:
+  - `survey.view`
+  - `survey.create`
+  - `survey.update`
+  - `survey.delete`
+  - `survey.export`
+  - `survey.manage_access`
+- Usar roles como **plantillas de permisos**.
+- Añadir **overrides por usuario** para excepciones concretas.
+- Caso de referencia:
+  - Rol Contabilidad permite exportar.
+  - Juanito recibe override `deny`.
+  - Catalina conserva `allow` por herencia del rol.
+- La regla de resolución debe ser determinista:
+  - override de usuario > permisos del rol;
+  - acceso no concedido explícitamente => `deny`.
+- Mantener los overrides como **excepciones**, no como mecanismo habitual de configuración.
+- Incorporar permisos a **nivel recurso** para casos como:
+  - un usuario puede ver una encuesta pero no otra;
+  - puede editar un dashboard específico;
+  - puede exportar un recurso concreto.
+- Resolver acceso por recurso con una capa genérica tipo ACL:
+  - tipo de recurso;
+  - identificador del recurso;
+  - usuario o rol;
+  - permiso;
+  - efecto `allow/deny`.
+- No acoplar el sistema de permisos a cada tabla de dominio mediante columnas especiales.
+- Mantener `survey_*` como un **dominio** de Intersel Insight, no como toda la aplicación.
+- Los datos externos tipo INEGI, indicadores públicos y otras fuentes **no deben forzarse dentro de `survey_*`**.
+- En el futuro podrán existir dominios separados, por ejemplo:
+  - `dataset_*`
+  - `indicator_*`
+  - `analytics_*`
+  - `dashboard_*`
+- No diseñar todavía toda la capa de datasets externos; solo evitar decisiones que impidan añadirla después.
+- Mantener el aislamiento de datos privados por organización en todas las tablas relevantes.
+- Añadir `organization_id` a las entidades de dominio que pertenezcan a una organización.
+- Priorizar una arquitectura preparada para RLS / aislamiento a nivel PostgreSQL.
+- Separar conceptualmente:
+  - aislamiento de tenant;
+  - autorización funcional;
+  - autorización por recurso.
+- No construir todavía un SaaS completo:
+  - sin billing;
+  - sin planes;
+  - sin dominios por tenant;
+  - sin licenciamiento;
+  - sin complejidad comercial innecesaria.
+- No introducir todavía una jerarquía obligatoria de:
+  - proyecto;
+  - workspace;
+  - carpeta;
+  - equipo;
+  - estudio como contenedor universal.
+- Sí dejar documentada la posibilidad de evolucionar hacia una jerarquía futura:
+  - `Organization → Project/Study/Workspace → Resource`
+- La futura capa de proyectos/workspaces podría aportar **herencia de permisos** y reducir la microgestión.
+- Esta capa debe quedar como **disclaimer técnico de evolución**, no como requisito de la versión inicial.
+- Objetivo general: que Intersel Insight pueda empezar simple para HCV, pero crecer hacia una plataforma reutilizable por Intersel u otras organizaciones sin rehacer la base de datos.

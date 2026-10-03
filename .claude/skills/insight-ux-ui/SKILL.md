@@ -33,6 +33,20 @@ Referencia actual: [`catalog-manager.tsx`](../../../src/components/insight/catal
 - Solo en «Interior del grupo», el estado aparece después del nombre del grupo o módulo como una píldora con un punto de color, sin texto visible. Conserva el nombre accesible del estado. No añadas esa píldora a la lista de grupos.
 - El estado se edita como select dentro del modal. `StateGauge` solo se usa en la vista principal del catálogo, en la cabecera del grupo y en las tarjetas de módulos.
 - El manómetro del grupo queda al pie derecho de su cabecera. En cada módulo se alinea a la derecha de la tarjeta. Los estados del resumen inferior se muestran como texto con punto de color, sin píldoras.
+- Roles y Permisos aparecen como módulos del grupo Administración y pueden cambiar de estado desde Componentes. Un módulo nuevo aparece en la navegación y abre una tarjeta provisional con su nombre, descripción y aviso de construcción hasta tener una pantalla implementada.
+
+## Patrón local: Encuestas
+
+- Encuestas tiene grupo propio y un módulo inicial. La lista muestra instrumentos (encuestas visibles) con organización, estudio, versión vigente y conteos; la búsqueda y el filtro por organización trabajan sobre los elementos autorizados.
+- El detalle organiza la información en Resumen, Cuestionario y Versiones. Las secciones agrupan preguntas y opciones. El resumen enlaza a una vista de registros paginada de la versión actual; permite buscar un ID externo exacto y abrir sus respuestas. Cada respuesta muestra la etiqueta de opción cuando existe y el valor original para preservar la lectura de la fuente.
+- La lista enlaza a «Importar cuestionario». La carga tiene dos pasos visibles: validar TXT, CSV, XLSX, XLS, ODS o JSON y revisar su resumen, luego confirmar la importación. En archivos tabulares muestra preguntas y muestras de valores, permite reasignar columnas y exige confirmar las advertencias antes de iniciar. El historial muestra estados y permite actualizarlo sin perder la página.
+- El formulario de carga solicita organización, nombres, archivo y versión entera precargada en 1. Muestra debajo de cada nombre la vista previa de su código en un campo de solo lectura; los segmentos se completan al escribir y `A001` es ilustrativo hasta preparar la carga. Ante una versión repetida, muestra la versión existente, enlaza su encuesta o carga y propone el siguiente entero.
+
+## Patrón local: organizaciones de Insight
+
+- Organizaciones pertenece al grupo fijo Insight y solo se muestra a sysadmin. Usa cabecera de control, resumen de totales y directorio en tarjeta con búsqueda, estado, cantidad de miembros y roles.
+- El modal de alta/edición ordena Nombre → ID autogenerado y permanente → zona horaria; al editar también muestra Estado. Explica que el alta crea roles base sin añadir miembros, y que archivar conserva datos y membresías.
+- El alta precarga el prefijo de código de tres caracteres a partir del nombre; sysadmin puede editarlo antes de guardar. En edición se muestra como identificador fijo.
 
 ## Patrón local: permisos Insight
 
@@ -53,6 +67,9 @@ Referencia actual: [`catalog-manager.tsx`](../../../src/components/insight/catal
 
 ## Patrón local: usuarios de Administración
 
+- En cada fila, Sysadmin ve la acción **Ver Como** con nombre accesible; para membresías inactivas se muestra deshabilitada con una explicación. Durante la máscara, una banda muy delgada aparece encima de la cabecera, muestra el correo del usuario (o su nombre si no está disponible) y la organización, y coloca **Salir** a la derecha. La máscara no cambia los permisos de Sysadmin.
+
 - Sigue la composición de BAIOS adaptada a Insight: cabecera con contexto de organización, resumen de usuarios y activos, tabla ordenable con búsqueda expandible y filtros multiselección con iconos Lucide y conteos. Rol y estado se encadenan; las opciones se derivan de los miembros disponibles y el limpiador restablece todos los criterios. Al abrir búsqueda, los filtros se compactan a iconos. Conserva el estado tipo switch y las acciones discretas de contraseña, edición y retiro.
 - Usa un modal con identidad global primero y roles de la organización después. El correo de una cuenta existente es de solo lectura; los roles admiten selección múltiple. Muestra la contraseña temporal únicamente en el modal de resultado, con acción de copiar.
 - El retiro confirma el nombre y explica que solo quita la membresía de la organización. El reseteo de contraseña global tiene confirmación y resultado separados; el estado se cambia en la fila con etiqueta además del color.
+- La cuenta maestra `sysadmin` se gestiona fuera de Usuarios: no aparece en la tabla, los filtros ni los formularios de asignación. Su rol global tampoco aparece en Roles de organización.

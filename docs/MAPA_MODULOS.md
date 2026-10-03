@@ -1,14 +1,23 @@
 # Mapa de módulos — Intersel Insight
 
+## Ver Como — v2
+
+- **Descripción:** Sysadmin activa una máscara desde la fila de un miembro activo en Usuarios, dentro de la organización seleccionada. La sesión de Supabase y el actor de las operaciones siguen siendo Sysadmin; la máscara añade el contexto visible del miembro y sus accesos al catálogo, sin retirar las capacidades administrativas. Una banda delgada encima de la cabecera identifica al usuario y la organización y permite salir de la máscara.
+- **Archivo principal:** `src/lib/view-as.ts` y `src/app/api/insight/view-as/route.ts`.
+- **Archivos relacionados:** `src/components/insight/users-manager.tsx`, `src/components/insight/view-as-banner.tsx`, `src/app/(app)/team/page.tsx`, `src/app/(app)/surveys/page.tsx`, `src/components/insight/surveys-manager.tsx`, `src/app/(app)/layout.tsx`, `src/app/auth/signout/route.ts` y `src/lib/insight-catalog.ts`.
+- **Funciones importantes:** `getViewedUser`, `POST/DELETE /api/insight/view-as`, `ViewAsBanner`.
+- **Padres:** Usuarios y sesión autenticada de Sysadmin. La API valida la identidad real, la membresía activa y la organización activa en cada activación; el contexto se vuelve a validar al leerlo.
+- **Hermanos/interacciones:** Usuarios y Encuestas seleccionan inicialmente la organización de la máscara; Sysadmin puede elegir las demás organizaciones que administra. Se conserva el aislamiento y la autorización de cada módulo con el actor real. Los módulos v1 aún usan `profiles`/`tenants`; esta máscara no los convierte en flujos v2 ni suplanta el JWT de Supabase.
+
 ## Roles de Administración — v2
 
-- **Descripción:** gestión de roles por organización con listado, ordenación, búsqueda, lápiz de edición y papelera. El modal de alta/edición reúne nombre, descripción y permisos con grupos, filtros, módulos y resumen de cambios. `owner` es obligatorio y no se elimina; los demás roles requieren estar sin miembros ni concesiones de recursos para poder eliminarse.
+- **Descripción:** gestión de roles por organización con listado, ordenación, búsqueda, lápiz de edición y papelera. El modal de alta/edición reúne nombre, descripción y permisos con grupos, filtros, módulos y resumen de cambios. `owner` es obligatorio y no se elimina; `sysadmin` es un rol global interno en `iam_platform_admins`, reservado fuera de este catálogo. Los demás roles requieren estar sin miembros ni concesiones de recursos para poder eliminarse.
 - **Archivo principal:** `src/app/(app)/roles/page.tsx` y `src/components/insight/roles-manager.tsx`.
 - **Archivos relacionados:** `src/components/insight/role-form-modal.tsx`, `src/components/insight/role-permission-workspace.tsx`, `src/app/api/insight/roles/route.ts`, `src/lib/insight-roles.ts`, `src/lib/catalog-code.ts`, `src/lib/insight-catalog.ts`, `src/lib/nav.ts` y `src/app/(app)/layout.tsx`.
 - **Funciones importantes:** `listRoleWorkspace`, `saveInsightRole`, `deleteInsightRole`, `RolesManager`, `RoleFormModal`, `RolePermissionWorkspace`.
-- **Padres:** layout autenticado `(app)` y navegación **Administración**; página y API requieren `sysadmin`.
+- **Padres:** layout autenticado `(app)` y navegación **Administración**; página y API requieren `sysadmin` y módulo `insight_roles` habilitado en el catálogo.
 - **Hijos:** `insight_iam.iam_roles` pertenece a `insight_core.core_organizations`; `iam_role_permissions` asigna permisos y `iam_membership_roles` asigna roles a miembros.
-- **Hermanos/interacciones:** lee `app_groups` → `app_modules` → `iam_permissions` para organizar el selector; Usuarios lee los roles de la organización para asignarlos. El modal edita datos y permisos en una transacción, también en roles predefinidos, y conserva permisos IAM anteriores ajenos al catálogo gestionable.
+- **Hermanos/interacciones:** lee `app_groups` → `app_modules` → `iam_permissions` para organizar el selector; Usuarios lee los roles de la organización para asignarlos. El modal edita datos y permisos en una transacción, también en roles predefinidos, y conserva permisos IAM anteriores ajenos al catálogo gestionable. La migración `scripts/017_single_sysadmin.sql` prohíbe el código `sysadmin` en `iam_roles`.
 
 ```mermaid
 flowchart TD
@@ -28,7 +37,7 @@ flowchart TD
 - **Archivo principal:** `src/app/(app)/permissions/page.tsx` y `src/components/insight/permissions-manager.tsx`.
 - **Archivos relacionados:** `src/app/api/insight/permissions/route.ts`, `src/lib/insight-permissions.ts`, `src/lib/insight-catalog.ts`, `src/lib/nav.ts`, `scripts/016_catalog_operate_permissions.sql`, `src/components/navigation/confirm-dialog.tsx` y `src/components/insight/permission-filter-controls.tsx`.
 - **Funciones importantes:** `listManagedPermissions`, `createManagedPermissions`, `updateManagedPermission`, `deleteManagedPermission`, `userCatalogAccess`, `PermissionsManager`.
-- **Padres:** layout autenticado `(app)` y grupo de navegación **Administración**; la página y cada operación API exigen `sysadmin`. El acceso a esta pantalla se incorpora al menú en código aunque el grupo gestionable no tenga otros módulos visibles.
+- **Padres:** layout autenticado `(app)` y grupo de navegación **Administración**; la página y cada operación API exigen `sysadmin` y módulo `insight_permissions` habilitado en el catálogo.
 - **Hijos:** `insight_iam.iam_modules` → `iam_permissions` → `iam_role_permissions` y `iam_user_permission_overrides`.
 - **Hermanos/interacciones:** `app_groups` y `app_modules` dan la estructura visual; `iam_modules` comparte el código del módulo gestionable. `operar` se evalúa en el menú y en `requireCatalogAccess` con prioridad de la excepción individual sobre el rol. La concesión a roles existentes preserva la visibilidad inicial; nuevas acciones requieren asignación posterior para producir efectos de autorización.
 
@@ -53,13 +62,13 @@ flowchart TD
 - **Archivos relacionados:** `src/components/insight/state-gauge.tsx`; `src/components/navigation/nav-icon.tsx`; `src/lib/catalog-code.ts`; catálogo local de `lucide-react/dynamic`; `src/app/api/insight/{groups,modules}/**/route.ts`; `src/lib/{insight-catalog,insight-catalog-api,insight-db}.ts/js`; `src/lib/nav.ts`; `scripts/{012_insight_module_catalog,013_insight_control_plane,014_catalog_groups_modules,015_remove_ready_state}.sql`.
 - **Funciones importantes:** `currentSysadmin`, `listCatalog`, `userCatalogAccess`, `requireCatalogAccess`, `saveCatalog`, `catalogMutation`, `CatalogManager`, `StateGauge`.
 - **Padres:** layout autenticado `(app)` y grupo fijo de navegación `Insight`; `iam_platform_admins` determina quién puede administrarlo. Su acceso no depende del catálogo.
-- **Hijos:** `app_groups` → `app_modules`; cada módulo registrado apunta a una ruta existente. `app_module_audit` registra cambios de grupos y módulos.
-- **Hermanos/interacciones:** los módulos de rutas existentes consumen `requireCatalogAccess`; el shell combina navegación gestionable y el grupo fijo Insight. `iam_modules` agrupa permisos y comparte el código de los módulos gestionables. Un ID nuevo carece de página hasta registrar su ruta. `apagado` excluye incluso a `sysadmin` en los grupos y módulos gestionables. Para usuarios no sysadmin, las guardas exigen grupo y módulo disponibles y permiso `operar` por rol o excepción individual.
+- **Hijos:** `app_groups` → `app_modules`; las rutas implementadas se resuelven desde `NAV` y los módulos nuevos usan `/workspace/[code]` hasta que tengan página propia. `app_module_audit` registra cambios de grupos y módulos.
+- **Hermanos/interacciones:** los módulos de rutas existentes consumen `requireCatalogAccess`; el shell combina navegación gestionable y el grupo fijo Insight. `iam_modules` agrupa permisos y comparte el código de los módulos gestionables. El trigger crea `operar` y lo concede a roles existentes en cada alta; el shell asigna `/workspace/[code]` a un módulo sin ruta implementada. `apagado` excluye incluso a `sysadmin` en los grupos y módulos gestionables. Roles y Permisos son gestionables, pero sus páginas y API siguen limitadas a sysadmin. Para los demás usuarios, las guardas exigen grupo y módulo disponibles y permiso `operar` por rol o excepción individual.
 
 ```mermaid
 flowchart TD
   AppLayout[Shell autenticado] --> Catalog[Catálogo app_groups]
-  AppLayout --> Manager[Insight / Módulos: fijo para sysadmin]
+  AppLayout --> Manager[Insight / Componentes: fijo para sysadmin]
   Catalog --> Sub[app_modules]
   Members[iam_organization_memberships] --> Nav
   Sub --> Nav[Menú y guardas de ruta]
@@ -71,7 +80,47 @@ flowchart TD
   IAM[iam_modules: permisos por módulo] -. códigos compartidos .- Catalog
 ```
 
-> **Estado:** inventario inicial basado en el código fuente inspeccionado el 2026-09-28. El modelo objetivo de organización fue indicado por el usuario y se documenta en [`ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md).
+## Organizaciones de Insight — v2
+
+- **Descripción:** directorio sysadmin de organizaciones, alta y edición de nombre, zona horaria y estado. El ID se deriva del nombre al crear y permanece fijo. El prefijo de código de tres caracteres se precarga desde el nombre y puede editarse durante el alta. Cada alta crea cinco roles base sin asignar a la cuenta maestra como miembro.
+- **Archivo principal:** `src/app/(app)/insight/organizations/page.tsx` y `src/components/insight/organizations-manager.tsx`.
+- **Archivos relacionados:** `src/app/api/insight/organizations/route.ts`, `src/lib/insight-organizations.ts`, `src/lib/survey-codes.ts`, `src/lib/catalog-code.ts`, `src/lib/insight-catalog.ts`, `src/lib/nav.ts`, `scripts/023_organization_prefix_survey_codes.sql` y `insight_core.core_organizations`.
+- **Funciones importantes:** `listOrganizations`, `saveOrganization`, `OrganizationsManager`, `OrganizationDialog`.
+- **Padres:** shell autenticado y grupo fijo Insight; página y API exigen `sysadmin`.
+- **Hijos:** `core_organizations` → `iam_roles` → `iam_role_permissions`; las membresías se agregan después desde Usuarios.
+- **Hermanos/interacciones:** Componentes gobierna las pantallas gestionables, mientras Organizaciones crea el ámbito de acceso que consumen Usuarios y Roles. La cuenta maestra permanece fuera de las membresías.
+
+```mermaid
+flowchart TD
+  Insight[Insight: sysadmin] --> Organizations[Organizaciones]
+  Organizations --> API[API protegida]
+  API --> Org[core_organizations]
+  Org --> Roles[iam_roles]
+  Roles --> Grants[iam_role_permissions]
+  Org --> Users[Usuarios: membresías posteriores]
+```
+
+## Encuestas — v2
+
+- **Descripción:** grupo propio **Encuestas** con un módulo del mismo nombre. Presenta instrumentos, cuestionarios, versiones y respuestas por organización. La carga de TXT, CSV, XLSX, XLS, ODS o JSON valida el archivo sin diccionario, muestra vista previa y asignación de columnas, y arranca un Workflow duradero bajo demanda. El formulario acepta una versión entera iniciada en 1, muestra códigos de solo lectura que se forman al escribir los nombres y genera los folios definitivos al preparar la carga; el backend conserva la versión completa con subversión. Los archivos A y B de HCV 2025 se importaron previamente mediante una tarea puntual reproducible.
+- **Archivo principal:** `src/app/(app)/surveys/page.tsx`, `src/app/(app)/surveys/[id]/page.tsx`, `src/app/(app)/surveys/[id]/responses/page.tsx` y `src/app/(app)/surveys/imports/page.tsx`.
+- **Archivos relacionados:** `src/app/api/surveys/imports/route.ts`, `src/workflows/survey-import.ts`, `src/app/(app)/surveys/layout.tsx`, `src/components/insight/{surveys-manager,survey-detail-view,survey-imports-view}.tsx`, `src/lib/{insight-surveys,insight-survey-imports,survey-codes}.ts`, `src/lib/nav.ts`, `scripts/{020_survey_catalog,021_survey_import_jobs,022_serverless_survey_imports,023_organization_prefix_survey_codes}.sql`, `scripts/{survey-file,survey-import-processor,import-hcv-2025,generate-survey-fixture,verify-survey-fixture}.js`, [`docs/IMPORTAR_ENCUESTAS.md`](IMPORTAR_ENCUESTAS.md), [`docs/MANUAL_TECNICO_CARGA_ENCUESTAS.md`](MANUAL_TECNICO_CARGA_ENCUESTAS.md), [`docs/ENCUESTAS_HCV_2025.md`](ENCUESTAS_HCV_2025.md), [`MATRIZ_PRUEBAS_ENCUESTAS.md`](../MATRIZ_PRUEBAS_ENCUESTAS.md) y los seis archivos `encuesta_sintetica_20p_100r.*` de la raíz.
+- **Funciones importantes:** `listSurveys`, `getSurveyDetail`, `getSurveyResponsePage`, `getSurveyImportWorkspace`, `createSurveyImportUpload`, `validateSurveyImportUpload`, `queueSurveyImportJob`, `surveyImportWorkflow`, `parseSurveyFile`, `SurveysManager`, `SurveyDetailView`, `SurveyImportsView`.
+- **Padres:** shell autenticado, grupo gestionable `encuestas`, permiso `encuestas.operar`, organización activa y permisos `survey.access` + `survey.view`.
+- **Hijos:** estudio → instrumento (la encuesta visible) → versiones → secciones/preguntas/opciones → observaciones y respuestas. `survey_import_jobs` conserva la versión, ruta privada del archivo, huella, vista previa, creador y estado; `survey_import_job_chunks` registra el progreso. `survey_code_sequences` reserva folios globales por organización de forma independiente para estudio e instrumento. Los conteos y registros proceden de la versión vigente.
+- **Hermanos/interacciones:** `insight_iam.iam_resources` puede restringir el instrumento mediante `resource_type='survey'` y `domain_resource_id` igual al UUID del instrumento. El servicio filtra lista, detalle y respuestas por organización y recurso. La carga exige `survey.access` + `survey.create` en una organización activa; Supabase Storage recibe el archivo directo del navegador y Workflow de Vercel procesa bloques con `insight_app`, conserva `raw_value` y procedencia y publica solo al finalizar. Reutiliza por nombre el estudio y el instrumento, conserva sus códigos y rechaza una versión ya existente para ese par en la organización; la respuesta enlaza la encuesta o tarea existente y sugiere la siguiente versión entera. El importador HCV original conserva su remapeo especial de 17 columnas; el cargador general permite reasignación explícita de columnas.
+
+## Área provisional de módulos — v2
+
+- **Descripción:** destino automático del menú para módulos del catálogo sin ruta implementada. Muestra nombre, descripción y aviso de construcción; exige el mismo acceso de catálogo que la página final.
+- **Archivo principal:** `src/app/(app)/workspace/[code]/page.tsx`.
+- **Archivos relacionados:** `src/app/(app)/layout.tsx`, `src/lib/nav.ts`, `src/lib/insight-catalog.ts`, `src/lib/insight-db.js`, `src/components/navigation/nav-icon.tsx` y `scripts/018_managed_admin_modules.sql`.
+- **Funciones importantes:** `ModuleWorkspace`, `userCatalogAccess`, `requireCatalogAccess`.
+- **Padres:** grupo y módulo de `app_groups`/`app_modules`, shell y permiso `<code>.operar`.
+- **Hijos:** tarjeta provisional; la ruta definitiva sustituye este destino al registrarse en `NAV`.
+- **Hermanos/interacciones:** el trigger de catálogo crea el permiso y su asignación inicial; el shell genera el enlace provisional cuando no encuentra un código en `NAV`.
+
+> **Estado:** inventario actualizado con la integración del catálogo y Organizaciones. El modelo objetivo de organización se documenta en [`ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md).
 > **Propósito:** ubicar procesos, archivos y dependencias antes de modificar la aplicación, sin tener que recorrer todo el repositorio en cada tarea.
 
 ## Autoridad y alcance
@@ -82,16 +131,16 @@ Este mapa separa **estado implementado** de **modelo objetivo**. El código y su
 
 **Brecha observada:** el código actual aún consulta `profiles`, `tenants` y `tenant_id` en módulos como autenticación, datasets, gráficas y dashboards. Esto describe la implementación presente, no el modelo objetivo; cualquier refactor de esas áreas debe considerar tanto el flujo actual como su destino multi-organización.
 
-**Base aplicada:** `auth` pertenece a Supabase; las tablas propias están en `insight_core` (6), `insight_iam` (10) e `insight_survey` (11). El catálogo de módulos ya se aplicó, aunque la mayor parte de la app sigue siendo v1. Consulta «Estado aplicado» en `ARQUITECTURA_BBDD.md` antes de modificar SQL, permisos o RPC.
+**Base aplicada:** `auth` pertenece a Supabase; las tablas propias están en `insight_core` (6), `insight_iam` (10) e `insight_survey` (12). El catálogo de módulos ya se aplicó, aunque la mayor parte de la app sigue siendo v1. Consulta «Estado aplicado» en `ARQUITECTURA_BBDD.md` antes de modificar SQL, permisos o RPC.
 
 ## Estado de versión de los archivos de aplicación
 
-Los archivos de aplicación descritos en este mapa se consideran **v1** mientras no tengan una etiqueta explícita de v2. **Perfil**, **Componentes**, **Permisos**, **Roles** y **Usuarios** son v2. La carpeta hermana `../intersel-insight` es la primera versión y se consulta solo para comparación.
+Los archivos de aplicación descritos en este mapa se consideran **v1** mientras no tengan una etiqueta explícita de v2. **Perfil**, **Componentes**, **Permisos**, **Roles**, **Usuarios** y **Organizaciones** son v2. La carpeta hermana `../intersel-insight` es la primera versión y se consulta solo para comparación.
 
 | Versión | Archivos |
 |---|---|
-| **v1** | `src/app/**` excepto Perfil, `src/app/(app)/insight/modules/**`, `src/app/(app)/permissions/**`, `src/app/(app)/roles/**`, `src/app/(app)/team/**` y `src/app/api/insight/**`; `src/components/**` excepto avatar y `src/components/insight/**`; `src/lib/**` excepto `src/lib/insight-*`; `src/proxy.ts`; Edge Function `supabase/functions/import-external/index.ts`. Las guardas nuevas `layout.tsx` en rutas existentes no migran el resto de esos flujos. |
-| **v2** | Perfil: `src/app/(app)/profile/{page.tsx,actions.ts,name-avatar-form.tsx,password-form.tsx}` y `src/components/avatar-cropper.tsx`. Administrador Insight: `src/app/(app)/insight/modules/page.tsx`, `src/components/insight/catalog-manager.tsx`. Permisos: `src/app/(app)/permissions/page.tsx`, `src/components/insight/permissions-manager.tsx`. Roles: `src/app/(app)/roles/page.tsx`, `src/components/insight/roles-manager.tsx`. Usuarios: `src/app/(app)/team/{page.tsx,actions.ts,layout.tsx}`, `src/components/insight/{users-manager,user-form-modal}.tsx`, `src/lib/insight-users.ts`. API `src/app/api/insight/**` y servicios `src/lib/insight-*`. |
+| **v1** | `src/app/**` excepto Perfil, `src/app/(app)/insight/**`, `src/app/(app)/workspace/**`, `src/app/(app)/permissions/**`, `src/app/(app)/roles/**`, `src/app/(app)/team/**` y `src/app/api/insight/**`; `src/components/**` excepto avatar y `src/components/insight/**`; `src/lib/**` excepto `src/lib/insight-*`; `src/proxy.ts`; Edge Function `supabase/functions/import-external/index.ts`. Las guardas nuevas `layout.tsx` en rutas existentes no migran el resto de esos flujos. |
+| **v2** | Perfil: `src/app/(app)/profile/{page.tsx,actions.ts,name-avatar-form.tsx,password-form.tsx}` y `src/components/avatar-cropper.tsx`. Administrador Insight: `src/app/(app)/insight/modules/page.tsx`, `src/components/insight/catalog-manager.tsx`. Organizaciones: `src/app/(app)/insight/organizations/page.tsx`, `src/components/insight/organizations-manager.tsx`. Encuestas (consulta inicial): `src/app/(app)/surveys/**`, `src/components/insight/{surveys-manager,survey-detail-view}.tsx` y `src/lib/insight-surveys.ts`. Área provisional: `src/app/(app)/workspace/[code]/page.tsx`. Permisos: `src/app/(app)/permissions/page.tsx`, `src/components/insight/permissions-manager.tsx`. Roles: `src/app/(app)/roles/page.tsx`, `src/components/insight/roles-manager.tsx`. Usuarios: `src/app/(app)/team/{page.tsx,actions.ts,layout.tsx}`, `src/components/insight/{users-manager,user-form-modal}.tsx`, `src/lib/insight-users.ts`. API `src/app/api/insight/**` y servicios `src/lib/insight-*`. |
 
 Esta marca expresa el linaje/estado acordado, no la compatibilidad con el esquema objetivo. Un archivo v1 puede requerir migración a organizaciones. Cambia una marca a v2 solo cuando ese flujo se haya adaptado y verificado; conserva el registro de módulos pendientes en este mapa.
 
@@ -168,7 +217,7 @@ flowchart TD
 - **Archivos relacionados:** `src/lib/nav.ts`; todos los componentes de `src/components/navigation/`; `src/components/cube-loader.tsx`; `src/components/auto-refresh.tsx`.
 - **Funciones/componentes importantes:** `AppLayout`, `NAV`, `findActiveNav`, `Sidebar`, `PanelHeader` (selector de módulos del header en todos los grupos, incluidos los de un solo módulo), `MobileModulesDrawer`, `MobileModuleBar`, `PanelHeaderProvider`, `MobileNavProvider`, `SessionAccountFooter`, `ThemeToggle`. `src/app/globals.css` define los tokens semánticos de color y las clases compartidas `.insight-card-header`, `.insight-shell-chrome` y `.insight-sidebar-surface`.
 - **Padres:** layout raíz y contexto de sesión.
-- **Hijos:** módulos accesibles desde el menú: Fuentes, Datasets, SQL Lab, Métricas, Dashboards, Gráficas, Mapas, Temas y Usuarios. Perfil y Consulta se declaran rutas adicionales en `src/lib/nav.ts`.
+- **Hijos:** módulos accesibles desde el menú: Fuentes, Datasets, SQL Lab, Métricas, Encuestas, Dashboards, Gráficas, Mapas, Temas y Usuarios. Perfil y Consulta se declaran rutas adicionales en `src/lib/nav.ts`.
 - **Hermanos/interacciones:** todos los módulos de panel comparten este shell; `findActiveNav` determina título/grupo según ruta.
 
 ### 4. Datasets e ingestión — v1
@@ -237,9 +286,9 @@ flowchart TD
 
 ### 10. Usuarios y asignación de roles — v2
 
-- **Descripción:** alta, búsqueda expandible, filtros multiselección encadenados por rol y estado, ordenación, estado, edición, retiro de membresía y reseteo de contraseña de usuarios por organización. Los filtros solo ofrecen opciones presentes en los miembros disponibles. La cuenta Auth es global; el retiro solo elimina la membresía. El rol `owner` activo no puede quedar sin titular.
+- **Descripción:** alta, búsqueda expandible, filtros multiselección encadenados por rol y estado, ordenación, estado, edición, retiro de membresía y reseteo de contraseña de usuarios por organización. Los filtros solo ofrecen opciones presentes en los miembros disponibles. La cuenta Auth es global; el retiro solo elimina la membresía. El rol `owner` activo no puede quedar sin titular. El `sysadmin` global queda fuera de la lista y de todas las acciones de Usuarios.
 - **Archivo principal:** `src/app/(app)/team/page.tsx` y `src/components/insight/users-manager.tsx`.
-- **Archivos relacionados:** `src/app/(app)/team/actions.ts`, `src/app/(app)/team/layout.tsx`; `src/components/insight/user-form-modal.tsx`; `src/lib/insight-users.ts`; `src/lib/supabase/{admin,server}.ts`; RPC `list_invitable_orgs`, `list_org_members`, `list_org_roles`, `iam_has_permission`, `add_organization_member`.
+- **Archivos relacionados:** `src/app/(app)/team/actions.ts`, `src/app/(app)/team/layout.tsx`; `src/components/insight/user-form-modal.tsx`; `src/lib/insight-users.ts`; `src/lib/supabase/{admin,server}.ts`; migración `scripts/017_single_sysadmin.sql`; RPC `list_invitable_orgs`, `list_org_members`, `list_org_roles`, `iam_has_permission`, `add_organization_member`.
 - **Funciones importantes:** `listUserOrganizations`, `memberRoleIds`, `createUser`, `updateTeamMember`, `changeTeamMemberStatus`, `removeTeamMember`, `resetTeamMemberPassword`, `UsersManager`, `UserFormModal`.
 - **Padres:** shell autenticado, guarda `usuarios.operar` del catálogo y permisos IAM `members.invite`, `members.update`, `members.remove`; el reseteo de contraseña global exige además `sysadmin`.
 - **Hijos:** `auth.users` y `core_user_profiles` para identidad global; `iam_organization_memberships` y `iam_membership_roles` para acceso de cada organización.
@@ -288,8 +337,8 @@ flowchart TD
 - **Hijos:** esquemas, tablas, políticas, funciones SQL y almacenamiento.
 - **Hermanos/interacciones:** módulos de dominio invocan Supabase mediante clientes compartidos; la Edge Function importa fuentes externas.
 - **Confianza del inventario:** la presencia de un archivo SQL no confirma que esté aplicado ni vigente. No aplicar ni usar una migración como contrato sin verificar su consumidor y estado por separado.
-- **Estado SQL confirmado (2026-09-28):** `auth` es de Supabase. `insight_app` es el rol SQL dedicado y propietario de 27 tablas propias: 6 en `insight_core`, 10 en `insight_iam`, 11 en `insight_survey`. El catálogo gestionable tiene 4 grupos y 10 módulos; Insight está fuera. `platform`, `intersel_insight` y el schema vacío `survey` ya no existen. `scripts/run-sql.js` usa `APP_DATABASE_URL` por defecto y requiere `--admin` para la conexión `postgres`.
-- **Dependencias inmediatas de base:** `auth.users` → perfiles, administradores y membresías; `insight_core.core_organizations` → membresías, roles, encuestas y concesiones de módulos; `private` → funciones de RLS; `public` → RPC consumidas por Next.js. Migraciones aplicadas: `scripts/011_reorganize_schemas.sql`, `scripts/012_insight_module_catalog.sql`, `scripts/013_insight_control_plane.sql` y `scripts/014_catalog_groups_modules.sql`. Los tres schemas propios no se exponen directamente por la Data API.
+- **Estado SQL confirmado (2026-09-29):** `auth` es de Supabase. `insight_app` es el rol SQL dedicado y propietario de 28 tablas propias: 6 en `insight_core`, 10 en `insight_iam`, 12 en `insight_survey`. El catálogo gestionable observado tras `020` tiene 5 grupos y 14 módulos; Insight está fuera. La base aún contiene el módulo provisional `organizacion` que `019` documenta como retirado. `platform`, `intersel_insight` y el schema vacío `survey` ya no existen. `scripts/run-sql.js` usa `APP_DATABASE_URL` por defecto y requiere `--admin` para la conexión `postgres`.
+- **Dependencias inmediatas de base:** `auth.users` → perfiles, administradores y membresías; `insight_core.core_organizations` → membresías, roles, encuestas y concesiones de módulos; `private` → funciones de RLS; `public` → RPC consumidas por Next.js. Migraciones de encuestas hasta `scripts/023_organization_prefix_survey_codes.sql`; confirma el estado aplicado de cada una antes de reutilizarla. Los tres schemas propios no se exponen directamente por la Data API.
 
 ## Rutas identificadas
 
@@ -308,8 +357,15 @@ El grupo `(app)` no forma parte de las URLs públicas.
 | `/p/[token]` | `src/app/p/[token]/page.tsx` | Publicación pública | v1 |
 | `/dashboard` | `src/app/(app)/dashboard/page.tsx` | Inicio del panel | v1 |
 | `/insight/modules` | `src/app/(app)/insight/modules/page.tsx` | Catálogo de grupos y módulos; solo sysadmin | v2 |
+| `/insight/organizations` | `src/app/(app)/insight/organizations/page.tsx` | Organizaciones; solo sysadmin | v2 |
 | `/roles` | `src/app/(app)/roles/page.tsx` | Roles por organización; solo sysadmin | v2 |
 | `/permissions` | `src/app/(app)/permissions/page.tsx` | Permisos del catálogo; solo sysadmin | v2 |
+| `/surveys` | `src/app/(app)/surveys/page.tsx` | Catálogo de encuestas por organización | v2 |
+| `/surveys/[id]` | `src/app/(app)/surveys/[id]/page.tsx` | Cuestionario y versiones de un instrumento | v2 |
+| `/surveys/[id]/responses` | `src/app/(app)/surveys/[id]/responses/page.tsx` | Registros paginados y respuestas individuales de la versión actual | v2 |
+| `/surveys/imports` | `src/app/(app)/surveys/imports/page.tsx` | Validación, mapeo, confirmación y seguimiento de cargas en seis formatos | v2 |
+| `/api/surveys/imports` | `src/app/api/surveys/imports/route.ts` | Autorizar subida privada, validar archivo e iniciar Workflow | v2 |
+| `/workspace/[code]` | `src/app/(app)/workspace/[code]/page.tsx` | Módulos nuevos en construcción | v2 |
 | `/sources` | `src/app/(app)/sources/page.tsx` | Fuentes | v1 |
 | `/datasets`, `/datasets/new`, `/datasets/[id]` | `src/app/(app)/datasets/` | Datasets | v1 |
 | `/sql` | `src/app/(app)/sql/page.tsx` | SQL Lab | v1 |

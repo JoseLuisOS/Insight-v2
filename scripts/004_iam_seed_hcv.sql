@@ -1,7 +1,14 @@
 -- scripts/004_iam_seed_hcv.sql
 -- Intersel Insight — IAM seed data (organización HCV + catálogo).
--- MUST run via the ADMIN connection: bootstraps iam_platform_admins, which
--- FKs to auth.users. Idempotent (on conflict do nothing throughout).
+-- Historical bootstrap. Run via ADMIN only on a fresh installation. The
+-- organization seed was retired in 017; stop before recreating it on this app.
+
+do $$ begin
+  if exists (select 1 from insight_core.core_organizations
+             where id = '3db52b3a-c042-4e6e-9bca-77a6f428fd5a') then
+    raise exception 'Bootstrap 004 retirado: no recrear la organización inicial.';
+  end if;
+end $$;
 
 set search_path = insight_core, insight_iam, public;
 
@@ -132,17 +139,6 @@ begin
     insert into insight_core.core_user_profiles (user_id) values (v_user_id)
       on conflict (user_id) do nothing;
 
-    insert into insight_iam.iam_organization_memberships (organization_id, user_id, status, joined_at)
-    select o.id, v_user_id, 'active', now()
-    from insight_core.core_organizations o where o.slug = 'hermosillo-como-vamos'
-    on conflict (organization_id, user_id) do nothing;
-
-    insert into insight_iam.iam_membership_roles (membership_id, role_id)
-    select mem.id, r.id
-    from insight_iam.iam_organization_memberships mem
-    join insight_core.core_organizations o on o.id = mem.organization_id and o.slug = 'hermosillo-como-vamos'
-    join insight_iam.iam_roles r on r.organization_id = o.id and r.code = 'owner'
-    where mem.user_id = v_user_id
-    on conflict do nothing;
+    -- El sysadmin es global y queda fuera de las membresías y roles de organización.
   end if;
 end $$;

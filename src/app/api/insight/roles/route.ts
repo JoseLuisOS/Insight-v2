@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
-import { currentSysadmin } from "@/lib/insight-catalog";
+import { currentSysadmin, userCatalogAccess } from "@/lib/insight-catalog";
 import { deleteInsightRole, listRoleWorkspace, saveInsightRole } from "@/lib/insight-roles";
 
 const forbidden = () => NextResponse.json({ error: "Acceso exclusivo de sysadmin." }, { status: 403 });
+async function authorized() { const id = await currentSysadmin(); return Boolean(id && (await userCatalogAccess(id, true)).has("insight_roles")); }
 
 export async function GET() {
-  if (!await currentSysadmin()) return forbidden();
+  if (!await authorized()) return forbidden();
   return NextResponse.json(await listRoleWorkspace());
 }
 
 async function mutate(request: Request, method: "POST" | "PATCH" | "DELETE") {
-  if (!await currentSysadmin()) return forbidden();
+  if (!await authorized()) return forbidden();
   try {
     const input = await request.json();
     const result = method === "DELETE" ? await deleteInsightRole(input?.id)

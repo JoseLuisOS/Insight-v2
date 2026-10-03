@@ -19,6 +19,12 @@ begin
   insert into insight_iam.iam_permissions(module_id, code, action, description)
   values (v_module_id, new.code || '.operar', 'operar', 'Permite ver y operar el módulo ' || new.name || '.')
   on conflict (code) do nothing;
+  if tg_op = 'INSERT' then
+    insert into insight_iam.iam_role_permissions(role_id, permission_id)
+    select r.id, p.id from insight_iam.iam_roles r
+    join insight_iam.iam_permissions p on p.code = new.code || '.operar'
+    on conflict do nothing;
+  end if;
   return new;
 end $$;
 

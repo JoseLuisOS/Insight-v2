@@ -43,6 +43,7 @@ function validateRoleInput(input: unknown, create: boolean) {
   if (!Array.isArray(value.permissionIds) || value.permissionIds.some((id) => typeof id !== "string" || !uuid.test(id))) throw new Error("Permisos inválidos.");
   const permissionIds = [...new Set(value.permissionIds as string[])];
   const code = catalogCodeFromName(value.name.trim());
+  if (code === "sysadmin") throw new Error("El rol sysadmin es interno y no se administra por organización.");
   if (create && !/^[a-z0-9_]{2,40}$/.test(code)) throw new Error("No se pudo generar un código válido.");
   return { id: value.id as string | undefined, organizationId: value.organizationId as string | undefined, name: value.name.trim(), description: value.description.trim() || null, code, permissionIds };
 }
@@ -76,6 +77,8 @@ export async function saveInsightRole(input: unknown, create: boolean) {
         values ($1,$2,$3,$4) returning id`, [role.organizationId, role.code, role.name, role.description]);
       id = result.rows[0].id;
     } else {
+      const existing = await client.query("select code from insight_iam.iam_roles where id = $1", [id]);
+      if (existing.rows[0]?.code === "sysadmin") throw new Error("El rol sysadmin es interno y no se administra por organización.");
       const result = await client.query(`update insight_iam.iam_roles set name = $2, description = $3, updated_at = now()
         where id = $1 returning id`, [id, role.name, role.description]);
       if (!result.rows.length) throw new Error("El rol no existe.");
@@ -103,6 +106,7 @@ export async function deleteInsightRole(id: string) {
     await client.query("begin");
     const role = await client.query("select id, code from insight_iam.iam_roles where id = $1 for update", [id]);
     if (!role.rows.length) throw new Error("El rol no existe.");
+    if (role.rows[0].code === "sysadmin") throw new Error("El rol sysadmin es interno y no se administra por organización.");
     if (role.rows[0].code === "owner") throw new Error("El rol owner es obligatorio y no se puede eliminar.");
     const members = await client.query("select 1 from insight_iam.iam_membership_roles where role_id = $1 limit 1", [id]);
     if (members.rows.length) throw new Error("Quita este rol de sus miembros antes de eliminarlo.");

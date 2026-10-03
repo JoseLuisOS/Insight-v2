@@ -37,6 +37,7 @@ export async function createUser(input: {
   const email = input.email.trim().toLowerCase();
   const displayName = input.displayName.trim();
   if (!EMAIL_RE.test(email)) return { error: "Correo inválido." };
+  if (email === "sysadminodin@temikia.com") return { error: "La cuenta maestra no se administra desde Usuarios." };
   if (displayName.length < 2 || displayName.length > 100) return { error: "El nombre debe tener entre 2 y 100 caracteres." };
   if (input.roleIds.length === 0) return { error: "Selecciona al menos un rol." };
 
