@@ -379,3 +379,12 @@ Registro de cambios del producto y de su documentación operativa. Se conserva c
   - El flujo tiene particularidades por formato y detalles de operación que no estaban reunidos en un manual técnico.
 - **¿Para qué?**
   - Permitir que desarrollo y operación preparen archivos, interpreten fallos y comprendan el recorrido de los datos desde la subida hasta su publicación.
+
+## 2026-10-03 — Seguimiento de cargas desde Encuestas
+
+- **¿Qué?**
+  - Las cargas incompletas aparecen en la pantalla principal de Encuestas con su estado y acciones para continuar, revisar errores o reintentar el inicio.
+- **¿Por qué?**
+  - Una carga ya enviada era visible únicamente tras entrar en «Importar cuestionario», una acción que sugiere crear otra carga.
+- **¿Para qué?**
+  - Encontrar y resolver una importación pendiente sin iniciar accidentalmente una nueva.

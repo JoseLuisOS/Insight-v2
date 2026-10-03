@@ -19,6 +19,11 @@ export type SurveyImportJob = {
   workflow_run_id: string | null; column_mapping: Record<string, number>;
 };
 export type SurveyImportOrganization = { id: string; name: string; code_prefix: string };
+export type SurveyImportProgress = {
+  id: string; organization_id: string; organization_name: string; study_name: string; study_code: string;
+  instrument_name: string; instrument_code: string; version: string; source_filename: string;
+  status: string; error_message: string | null; workflow_run_id: string | null;
+};
 
 export class DuplicateSurveyVersionError extends Error {
   constructor(
@@ -67,14 +72,31 @@ export async function getSurveyImportWorkspace() {
   const actor = await importActor();
   const organizations = await createOrganizations(actor);
   if (!organizations.length) return { organizations, jobs: [] as SurveyImportJob[] };
-  const result = await insightDb().query(`select j.id, j.organization_id, o.name as organization_name,
+  const result = await insightDb().query(`with selected_jobs as (select j.id, j.organization_id, o.name as organization_name,
     j.study_code, j.instrument_code, j.instrument_name, j.version, j.source_filename, j.preview,
     j.status, j.error_message, j.instrument_id, j.created_at, j.workflow_run_id, j.column_mapping
     from insight_survey.survey_import_jobs j
     join insight_core.core_organizations o on o.id = j.organization_id
-    where j.organization_id = any($1::uuid[])
-    order by j.created_at desc limit 50`, [organizations.map((org) => org.id)]);
+    where j.organization_id = any($1::uuid[]))
+    select * from selected_jobs
+    where status <> 'completed' or id in (
+      select id from selected_jobs where status = 'completed' order by created_at desc limit 50
+    ) order by created_at desc`, [organizations.map((org) => org.id)]);
   return { organizations, jobs: result.rows as SurveyImportJob[] };
+}
+
+export async function listUnfinishedSurveyImports(): Promise<SurveyImportProgress[]> {
+  const actor = await importActor();
+  const organizations = await createOrganizations(actor);
+  if (!organizations.length) return [];
+  const result = await insightDb().query(`select j.id, j.organization_id, o.name as organization_name,
+    j.study_name, j.study_code, j.instrument_name, j.instrument_code, j.version,
+    j.source_filename, j.status, j.error_message, j.workflow_run_id
+    from insight_survey.survey_import_jobs j
+    join insight_core.core_organizations o on o.id = j.organization_id
+    where j.organization_id = any($1::uuid[]) and j.status <> 'completed'
+    order by j.created_at desc`, [organizations.map((org) => org.id)]);
+  return result.rows as SurveyImportProgress[];
 }
 
 async function ensureBucket() {
