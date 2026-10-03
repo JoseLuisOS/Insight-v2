@@ -27,6 +27,14 @@ description: Use when changing or understanding the Intersel Insight application
 
 En tareas de interfaz, consulta también [`insight-ux-ui`](../insight-ux-ui/SKILL.md) para las decisiones visuales e interactivas vigentes. Invócala y actualízala solo cuando haya trabajo o decisiones de UX/UI; mantenla fuera de cambios exclusivamente de datos, API o infraestructura.
 
+## Sincronización con GitHub y Vercel
+
+- Este checkout, la rama `main` y el proyecto de Vercel que usa el usuario son el entorno de desarrollo, aunque Vercel etiquete un despliegue como **Production**. Antes de un cambio importante (autenticación, permisos, esquema, importación o configuración de despliegue), revisa `git status`, la rama, `HEAD`, `origin` y el commit del despliegue relevante en Vercel. Ejecuta `git fetch` para conocer el estado remoto; no hagas `pull`, `rebase`, `reset`, `checkout` ni descartes archivos mientras haya cambios locales sin preservar.
+- Trata los cambios locales preexistentes como trabajo del usuario. Antes de sincronizar, separa los archivos de la tarea de los ajenos; nunca incluyas `.env`, secretos, datos de prueba sensibles ni cambios ajenos en un commit.
+- Cuando el usuario solicite mantener GitHub actualizado, publica los cambios de tarea en `main` con un commit acotado. No mezcles cambios locales ajenos: prepara solo los archivos de la tarea y conserva los demás sin alterar.
+- Para revisar una tarea en Vercel, publica primero el commit de `main`, espera a que el despliegue del entorno de desarrollo quede listo y comprueba su URL y logs, independientemente de la etiqueta de Vercel. Tras verificar, vuelve a comprobar rama, commit y estado local y reporta el commit y el ID/estado del despliegue.
+- Antes de cerrar un cambio importante, confirma que GitHub contiene el commit revisado y que Vercel ejecutó ese mismo commit cuando la tarea requiera revisión visual o funcional allí. No reportes una tarea como vista en Vercel si solo se verificó localmente.
+
 ## Versiones y evolución del código
 
 - El producto objetivo de Insight-v2 usa organizaciones (`organization_id`), memberships y permisos. No introduzcas `tenant_id` ni una entidad `tenants` como modelo nuevo.

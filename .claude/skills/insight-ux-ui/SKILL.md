@@ -14,6 +14,7 @@ Esta skill reúne decisiones vigentes de interfaz para mantener coherencia entre
 - Distingue reglas compartidas de patrones de una pantalla. Un diseño local no se convierte por sí solo en regla para todo Insight.
 - Registra el motivo del cambio de producto en la [bitácora breve](../../../docs/BITACORA.md), con listas bajo ¿Qué?, ¿Por qué? y ¿Para qué?; no dupliques allí esta guía.
 - Evita inventarios de componentes, rutas o dependencias aquí: eso pertenece al mapa. Mantén esta skill corta y orientada a decisiones que guían el diseño.
+- Para cambios de interfaz importantes, sigue la sección **Sincronización con GitHub y Vercel** de `insight-v2/SKILL.md`: conserva `main` como rama de desarrollo y valida el despliegue de Vercel asociado cuando la tarea deba verse allí.
 
 ## Base visual compartida confirmada
 
