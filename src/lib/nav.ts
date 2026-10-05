@@ -106,3 +106,28 @@ export function findActiveNav(
   }
   return { group: null, active: null };
 }
+
+const SUBMODULE_ROUTES: { pattern: RegExp; title: string }[] = [
+  { pattern: /^\/surveys\/?$/, title: "Estudios" },
+  { pattern: /^\/surveys\/imports\/?$/, title: "Importar cuestionario" },
+  { pattern: /^\/surveys\/[^/]+\/responses\/?$/, title: "Respuestas" },
+  { pattern: /^\/surveys\/[^/]+\/?$/, title: "Cuestionario" },
+  { pattern: /^\/datasets\/new\/?$/, title: "Nuevo dataset" },
+  { pattern: /^\/datasets\/[^/]+\/?$/, title: "Detalle de dataset" },
+  { pattern: /^\/charts\/new\/?$/, title: "Nueva gráfica" },
+  { pattern: /^\/charts\/[^/]+\/edit\/?$/, title: "Editar gráfica" },
+  { pattern: /^\/charts\/[^/]+\/?$/, title: "Detalle de gráfica" },
+  { pattern: /^\/dashboards\/[^/]+\/edit\/?$/, title: "Editar dashboard" },
+  { pattern: /^\/dashboards\/[^/]+\/?$/, title: "Detalle de dashboard" },
+  { pattern: /^\/query\/new\/?$/, title: "Nueva consulta" },
+];
+
+export function getDocumentTitle(nav: NavGroup[], pathname: string, view?: string | null): string {
+  const { active } = findActiveNav(nav, pathname);
+  if (!active) return "Intersel Insight";
+  const surveyViewTitle = /^\/surveys\/[^/]+\/?$/.test(pathname)
+    ? view === "table" ? "Tabla de registros" : view === "records" ? "Registros" : null
+    : null;
+  const submodule = surveyViewTitle ?? SUBMODULE_ROUTES.find(({ pattern }) => pattern.test(pathname))?.title;
+  return [active.label, submodule, "Intersel Insight"].filter(Boolean).join(" · ");
+}

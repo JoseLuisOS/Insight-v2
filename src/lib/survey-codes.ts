@@ -20,9 +20,13 @@ function series(index: number): string {
   return result;
 }
 
-export function surveyCode(prefix: string, studyName: string, sequence: number, instrumentName?: string): string {
+export function surveySequenceLabel(sequence: number): string {
   if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("Secuencia de encuesta inválida.");
-  const marker = `${series(Math.floor((sequence - 1) / 999))}${(((sequence - 1) % 999) + 1).toString().padStart(3, "0")}`;
+  return `${series(Math.floor((sequence - 1) / 999))}${(((sequence - 1) % 999) + 1).toString().padStart(3, "0")}`;
+}
+
+export function surveyCode(prefix: string, studyName: string, sequence: number, instrumentName?: string): string {
+  const marker = surveySequenceLabel(sequence);
   const base = `${prefix}-${threeLetterCode(studyName)}`;
   return instrumentName === undefined
     ? `${base}-${marker}`

@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { start } from "workflow/api";
-import { cancelSurveyImportUpload, createSurveyImportUpload, DuplicateSurveyVersionError, queueSurveyImportJob, setSurveyImportRunId, validateSurveyImportUpload } from "@/lib/insight-survey-imports";
+import { cancelSurveyImportUpload, createSurveyImportUpload, deleteSurveyImportJob, DuplicateSurveyVersionError, listSurveyImportStatuses, queueSurveyImportJob, setSurveyImportRunId, validateSurveyImportUpload } from "@/lib/insight-survey-imports";
 import { surveyImportWorkflow } from "@/workflows/survey-import";
+import { logError } from "@/lib/server-log";
 
 export const runtime = "nodejs";
+
+export async function GET(request: Request) {
+  try {
+    const ids = new URL(request.url).searchParams.get("ids")?.split(",") ?? [];
+    const statuses = await listSurveyImportStatuses(ids);
+    return NextResponse.json({ revision: JSON.stringify(statuses) }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) { return failure(error); }
+}
 
 function failure(error: unknown) {
   if (error instanceof DuplicateSurveyVersionError) return NextResponse.json({
@@ -11,8 +20,8 @@ function failure(error: unknown) {
     existing_instrument_id: error.instrumentId, existing_job_id: error.jobId,
   }, { status: 409 });
   const message = error instanceof Error ? error.message : "No se pudo importar el archivo.";
-  const expected = /^(Inicia sesión|No tienes acceso|No puedes importar|Los nombres|La versión|La organización|La secuencia|Ya hay una importación|Selecciona|Formato|El archivo|Faltan|Encabezado|Valor inválido|ID vacío|Archivo delimitado|Hoja de cálculo|JSON|Pregunta|Respuesta|Tipo de pregunta|Opciones|Ese código|Ya existe|Importación|La importación|Revisa|No se encontró|No se pudo|Falta configurar|El almacenamiento)/.test(message);
-  if (!expected) console.error("Error al importar encuesta", error);
+  const expected = /^(Inicia sesión|No tienes acceso|No puedes importar|No puedes eliminar|Los nombres|La versión|La organización|La secuencia|Ya hay una importación|Selecciona|Formato|El archivo|Faltan|Encabezado|Valor inválido|ID vacío|Archivo delimitado|Hoja de cálculo|JSON|Pregunta|Respuesta|Tipo de pregunta|Opciones|Ese código|Ya existe|Importación|La importación|Revisa|No se encontró|No se pudo|Falta configurar|El almacenamiento)/.test(message);
+  if (!expected) logError("Error al importar encuesta", error);
   return NextResponse.json({ error: expected ? message : "No se pudo importar el archivo." }, { status: expected ? 400 : 500 });
 }
 
@@ -31,7 +40,8 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const body = await request.json();
-    await cancelSurveyImportUpload(String(body.id ?? ""));
+    if (body.action === "delete") await deleteSurveyImportJob(String(body.id ?? ""));
+    else await cancelSurveyImportUpload(String(body.id ?? ""));
     return NextResponse.json({ ok: true });
   } catch (error) { return failure(error); }
 }

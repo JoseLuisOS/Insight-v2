@@ -8,15 +8,15 @@
 
 Este proceso crea un instrumento de encuesta a partir de un archivo tabular o JSON, conserva el valor original de cada respuesta y publica una versión cuando todos sus bloques se guardaron. El flujo está pensado para una aplicación desplegada en Vercel y Supabase, sin un proceso worker que deba permanecer activo.
 
-La aplicación admite TXT, CSV, XLSX, XLS, ODS y JSON. No requiere una hoja diccionario. En hojas de cálculo usa solo la primera hoja. En datos tabulares identifica las preguntas a partir de los encabezados y permite intercambiar el origen de sus columnas antes de importar.
+La aplicación admite TXT, CSV, XLSX, XLS, ODS y JSON. No requiere una hoja diccionario. En hojas de cálculo usa solo la primera hoja. En datos tabulares identifica las preguntas a partir de los encabezados y muestra los valores distintos de cada columna antes de importar.
 
-El importador no puede deducir por sí solo el significado de una columna. Si dos encabezados o etiquetas no describen correctamente sus valores, la vista previa y el mapeo deben revisarse antes de confirmar. El tipo de pregunta inferido también es heurístico; los archivos JSON permiten declarar el tipo explícitamente.
+El importador no puede deducir por sí solo el significado de una columna. Si dos encabezados o etiquetas no describen correctamente sus valores, se debe corregir el archivo y volver a subirlo. El tipo de pregunta inferido también es heurístico; los archivos JSON permiten declarar el tipo explícitamente.
 
 ## 2. Componentes de la solución
 
 | Capa | Archivo o servicio | Función |
 | --- | --- | --- |
-| Interfaz | `src/app/(app)/surveys/imports/page.tsx`, `src/components/insight/survey-imports-view.tsx` | Captura organización, nombres, versión entera y archivo; presenta códigos generados, vista previa, advertencias, mapeo y estados. |
+| Interfaz | `src/app/(app)/surveys/imports/page.tsx`, `src/components/insight/survey-imports-view.tsx` | Captura organización, nombres, versión entera y archivo; presenta códigos generados, valores distintos, advertencias, eliminación de cargas previas al procesamiento y estados. |
 | API | `src/app/api/surveys/imports/route.ts` | `POST` prepara una subida; `PUT` valida el archivo; `PATCH` encola el trabajo e inicia Workflow. |
 | Autorización y Storage | `src/lib/insight-survey-imports.ts` | Valida usuario, módulo, membresía y permisos; crea bucket privado si falta; autoriza subidas firmadas; persiste la tarea. |
 | Lector | `scripts/survey-file.js` | Reconoce extensión y analiza formatos, estructura, IDs, preguntas, respuestas, límites y vista previa. |
@@ -74,7 +74,7 @@ Se aplican a todos los formatos, además de las validaciones específicas de la 
 | Extensión | Solo `.txt`, `.csv`, `.xlsx`, `.xls`, `.ods` o `.json`, sin distinguir mayúsculas. La clasificación se hace por extensión del nombre. |
 | Tamaño | Archivo no vacío y hasta 10 MiB (10 × 1 024 × 1 024 bytes). El tamaño real se comprueba al descargarlo. |
 | Conteos | Entre 1 y 500 preguntas; entre 1 y 20 000 registros; máximo de 5 000 000 respuestas (preguntas × registros). |
-| Encabezados/códigos | Códigos no vacíos y únicos después de normalizar encabezados. JSON exige código válido y único. |
+| Encabezados/códigos | Encabezados no vacíos y únicos después de normalizarlos. JSON exige códigos de origen válidos y únicos. El código almacenado de cada pregunta es `P###` según su posición. |
 | Identificadores de registro | No vacíos y únicos. En tabulares sin columna ID se generan consecutivos y se añade advertencia. JSON exige `id` o `external_id`. |
 | Filas y celdas | Se omiten filas completamente vacías; se rechaza una fila con celdas adicionales no vacías fuera del ancho del encabezado. Celdas de más de 32 767 caracteres o con byte nulo se rechazan. |
 | Archivo entre validación e importación | Se calcula SHA-256 al validar. Antes de encolar y de cada ejecución del procesador se compara la huella; cambios del objeto hacen fallar el proceso. |
@@ -96,7 +96,9 @@ La validación de estructura no evalúa el sentido estadístico o sustantivo de 
 
 ### 5.1 Cómo infiere preguntas tabulares
 
-Para cada encabezado de valor, el lector genera un código al convertirlo a minúsculas, quitar diacríticos, reemplazar caracteres no alfanuméricos por guion bajo y recortar guiones bajos de los extremos. La etiqueta visible procede del propio encabezado; en el formato HCV histórico, procede de la fila `Etiqueta:` y el código de la fila `Variable`.
+Para cada encabezado de valor, el lector conserva el texto de origen, pero asigna el código público `P001`, `P002`, etc., según la posición de la pregunta, sin contar la columna de ID. La etiqueta visible procede del propio encabezado; en el formato HCV histórico, procede de la fila `Etiqueta:` y el origen de la fila `Variable`. En JSON, los códigos originales identifican las claves de `answers`, mientras que el código almacenado también es `P###`.
+
+Los trabajos que ya estaban encolados o procesándose conservan los códigos registrados en su vista previa para que sus bloques sigan usando el mismo identificador. La nueva secuencia `P###` se aplica a las cargas que aún se validan o importan después del cambio.
 
 Los valores no faltantes determinan el tipo inicial:
 
@@ -104,7 +106,7 @@ Los valores no faltantes determinan el tipo inicial:
 2. Si no son numéricos, tienen de 2 a 20 valores distintos y estos representan como máximo el 30 % de las respuestas no faltantes, se interpreta `single_choice` y esos valores se convierten en opciones.
 3. En los demás casos se interpreta `text`.
 
-Por ello una categoría codificada con números se inferirá como numérica. Este es un límite deliberado del modo sin diccionario, no un error del parser. Para mantener categorías con tipo explícito, se debe usar JSON o corregir la configuración del flujo en una iteración posterior; la pantalla actual permite reordenar columnas, pero no editar el tipo inferido.
+Por ello una categoría codificada con números se inferirá como numérica. Este es un límite deliberado del modo sin diccionario, no un error del parser. Para mantener categorías con tipo explícito, se debe usar JSON o corregir la configuración del flujo en una iteración posterior; la pantalla actual no edita el tipo inferido.
 
 ## 6. Especificación por archivo
 
@@ -114,7 +116,7 @@ Por ello una categoría codificada con números se inferirá como numérica. Est
 
 **Separador:** si el contenido tiene tabulador, el lector lo fija como separador. Si no, se lo deja a la autodetección de PapaParse (por ejemplo, coma o punto y coma). Para una importación predecible, utilizar tabulador o un CSV válido con delimitadores y comillas consistentes.
 
-**Qué revisar:** encabezados sin duplicados una vez normalizados; primera fila no desplazada; que las muestras de cada columna correspondan a la pregunta; y que la columna identificadora se llame `id`, `external_id`, `id_externo`, `folio`, `registro`, `record_id` o `respondent_id`. Si no se identifica, se asignan `1`, `2`, … según el orden de las filas no vacías.
+**Qué revisar:** encabezados sin duplicados una vez normalizados; primera fila no desplazada; que los valores distintos de cada columna correspondan a la pregunta; y que la columna identificadora se llame `id`, `external_id`, `id_externo`, `folio`, `registro`, `record_id` o `respondent_id`. Si no se identifica, se asignan `1`, `2`, … según el orden de las filas no vacías.
 
 **Falla frecuente:** texto plano con espacios como separador o ancho fijo no se reconoce necesariamente como tabla. Vuelve a exportarlo con tabuladores o CSV.
 
@@ -124,7 +126,7 @@ Por ello una categoría codificada con números se inferirá como numérica. Est
 
 **Validación:** si PapaParse devuelve errores estructurales, se rechaza el archivo. Los encabezados se normalizan para formar códigos y colisiones como `¿Tiene acceso?` frente a `Tiene acceso` pueden producir el mismo código y rechazarse. Se detectan filas con datos después del último encabezado.
 
-**Qué revisar:** delimitador detectado, caracteres acentuados, comillas que encierran texto con comas, columnas de folio y muestras. En la pantalla se muestran tres valores iniciales por pregunta para orientar la revisión; no constituyen una revisión estadística de todo el contenido.
+**Qué revisar:** delimitador detectado, caracteres acentuados, comillas que encierran texto con comas, columnas de folio y valores distintos. En la pantalla se muestran todos los valores distintos cuando son hasta 25; por encima de ese límite se eligen 25 al azar. Si al menos un valor de la columna supera siete palabras, el límite baja a 10. No constituyen una revisión estadística de todo el contenido.
 
 ### 6.3 XLSX
 
@@ -134,7 +136,7 @@ Por ello una categoría codificada con números se inferirá como numérica. Est
 
 **Hojas posteriores:** no se leen. Un diccionario, catálogos u hojas de apoyo adicionales no cambian los códigos, las opciones ni el tipo de la importación.
 
-**Qué revisar:** que la primera hoja sea realmente la base, que no haya títulos antes de los encabezados (salvo la estructura HCV detectada), que no existan columnas vacías o duplicadas y que las muestras de valores correspondan a las preguntas. Se puede intercambiar el origen de dos o más preguntas desde el control «Valores de la columna»; el intercambio mantiene una asignación uno a uno.
+**Qué revisar:** que la primera hoja sea realmente la base, que no haya títulos antes de los encabezados (salvo la estructura HCV detectada), que no existan columnas vacías o duplicadas y que los valores distintos correspondan a las preguntas. La vista muestra todos los valores si no superan el límite de la columna (25, o 10 cuando alguna respuesta tiene más de siete palabras); cuando lo superan, elige una muestra aleatoria. Si hay un desfase, corrige el archivo y vuelve a subirlo.
 
 ### 6.4 XLS
 
@@ -146,7 +148,7 @@ Para obtener mejores resultados, guardar el libro binario con encabezados y dato
 
 El procedimiento es el mismo que para XLSX: solo se analiza la primera hoja; la primera fila ordinaria actúa como encabezado, salvo que la hoja tenga el patrón HCV histórico. Las hojas de apoyo se ignoran. Se validan las mismas filas, códigos, IDs, valores y límites.
 
-Antes de confirmar, verificar muestras y el mapeo: que LibreOffice muestre la misma primera hoja y encabezados que la vista previa. El lector no usa hojas de diccionario ni metadatos externos para corregir el contenido.
+Antes de confirmar, verificar los valores distintos: que LibreOffice muestre la misma primera hoja y encabezados que la vista previa. El lector no usa hojas de diccionario ni metadatos externos para corregir el contenido.
 
 ### 6.6 JSON
 
@@ -179,7 +181,7 @@ Antes de confirmar, verificar muestras y el mapeo: que LibreOffice muestre la mi
 
 **Valores:** `number`, `integer` y `scale` deben producir valores finitos; `integer` también debe ser entero seguro. Para `single_choice`, un valor que no coincide por código o etiqueta, ignorando mayúsculas, acentos y espacios exteriores/repetidos, genera advertencia. La advertencia requiere confirmación antes de iniciar. Los valores de texto no se convierten a categorías.
 
-JSON ya expresa la relación respuesta-pregunta por código; por esto no acepta el mapeo de columnas tabulares.
+JSON ya expresa la relación respuesta-pregunta por código; la vista previa también muestra sus valores distintos.
 
 ## 7. Flujo de operación
 
@@ -189,7 +191,7 @@ JSON ya expresa la relación respuesta-pregunta por código; por esto no acepta 
 2. `POST /api/surveys/imports` valida sesión, acceso, permisos, organización, versión, nombres, tamaño declarado y duplicados conocidos. Bloquea la organización para reservar folios, conserva códigos existentes y genera los nuevos; asegura el bucket privado, genera una ruta única y obtiene una autorización de subida firmada. Registra el trabajo como `uploading`.
 3. El navegador envía el archivo directamente al bucket usando `uploadToSignedUrl`; los bytes no atraviesan el cuerpo de la función API.
 4. `PUT /api/surveys/imports` vuelve a comprobar autorización, descarga el objeto, comprueba tamaño real, analiza el archivo y calcula SHA-256. Guarda huella y vista previa y cambia a `ready`.
-5. El usuario revisa conteos, muestras, advertencias y, para formatos tabulares, el mapeo. Confirmar advertencias es obligatorio si las hay.
+5. El usuario revisa conteos, valores distintos y advertencias. Confirmar advertencias es obligatorio si las hay. Una carga sin procesamiento puede eliminarse con confirmación.
 
 Si la subida o validación falla en la interfaz, `DELETE /api/surveys/imports` marca el trabajo `uploading` como fallido. Si se cierra la pestaña, el siguiente intento en esa organización marca como fallidos los trabajos `uploading` con más de una hora. El folio reservado no se recicla.
 
@@ -270,8 +272,8 @@ La función serverless de inicio solo confirma la tarea y arranca Workflow; el t
 
 1. Confirmar que la organización esté activa y que el usuario tenga `encuestas`, `survey.access` y `survey.create`.
 2. Preparar nombres descriptivos de estudio e instrumento y elegir la versión entera; los códigos se asignan automáticamente.
-3. Elegir el archivo, validar y comprobar conteos, nombres de preguntas, tres muestras y advertencias. Para XLSX/XLS/ODS, comprobar que la primera hoja sea la correcta.
-4. Si el orden de los datos no corresponde con los encabezados, reasignar columnas en la vista previa. Confirmar las advertencias y comenzar.
+3. Elegir el archivo, validar y comprobar conteos, códigos `P###`, nombres de preguntas, hasta 25 valores distintos por pregunta (10 ante respuestas de más de siete palabras) y advertencias. Para XLSX/XLS/ODS, comprobar que la primera hoja sea la correcta.
+4. Si los datos no corresponden con los encabezados, corregir el archivo y volver a subirlo. Confirmar las advertencias y comenzar.
 5. Actualizar el historial de importaciones hasta observar `Completado` o `Falló`.
 6. Al completar, abrir encuesta y revisar conteo de preguntas/observaciones, versión publicada, un conjunto de registros y respuestas originales.
 
@@ -295,7 +297,7 @@ No registrar ni pegar `SUPABASE_SERVICE_ROLE_KEY` en trazas, tickets o capturas.
 - [`IMPORTAR_ENCUESTAS.md`](IMPORTAR_ENCUESTAS.md): guía breve para quien carga archivos.
 - [`ENCUESTAS_HCV_2025.md`](ENCUESTAS_HCV_2025.md): carga inicial y particularidades de esos libros.
 - [`MATRIZ_PRUEBAS_ENCUESTAS.md`](../MATRIZ_PRUEBAS_ENCUESTAS.md): validaciones locales y casos pendientes de prueba extremo a extremo.
-- `scripts/generate-survey-fixture.js` y `scripts/verify-survey-fixture.js`: generación y verificación de la encuesta sintética de 20 preguntas y 100 registros en los seis formatos.
+- `scripts/generate-survey-fixture.js` y `scripts/verify-survey-fixture.js`: generación y verificación de una encuesta cotidiana de 20 preguntas y 100 registros en ocho archivos que cubren los seis formatos admitidos.
 
 ## 12. Referencias externas
 

@@ -88,7 +88,7 @@ export default async function AppLayout({
   return (
     <MobileNavProvider>
       <PanelHeaderProvider>
-        <div className="flex h-dvh overflow-hidden bg-background">
+        <div className="insight-app-shell flex h-dvh overflow-hidden bg-background">
           <Sidebar
             nav={nav}
             user={shellUser}
@@ -96,7 +96,7 @@ export default async function AppLayout({
             initialCollapsed={initialCollapsed}
           />
           <MobileModulesDrawer nav={nav} user={shellUser} />
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             {viewedUser && <ViewAsBanner identifier={viewedUser.email ?? viewedUser.name} organization={viewedUser.organizationName} />}
             <PanelHeader nav={nav} />
             <main className="min-h-0 flex-1 overflow-y-auto">

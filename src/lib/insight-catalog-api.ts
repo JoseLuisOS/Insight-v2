@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { currentSysadmin, saveCatalog, validateInput } from "@/lib/insight-catalog";
+import { logError } from "@/lib/server-log";
 
 export async function catalogMutation(request: Request, kind: "group" | "module", code?: string) {
   const actorId = await currentSysadmin();
@@ -18,7 +19,7 @@ export async function catalogMutation(request: Request, kind: "group" | "module"
     const dbError = error as { code?: string; constraint?: string };
     if (dbError.code === "23505") return NextResponse.json({ error: "Ya existe ese ID." }, { status: 409 });
     if (dbError.code === "23503") return NextResponse.json({ error: "El grupo padre no existe." }, { status: 400 });
-    console.error("Error en catálogo Insight", error);
+    logError("Error en catálogo Insight", error);
     return NextResponse.json({ error: "No se pudo guardar el componente." }, { status: 500 });
   }
 }

@@ -82,7 +82,7 @@ export function Sidebar({ nav, user, initialRail = false, initialCollapsed = {} 
   return (
     <aside
       style={{ width: rail ? SIDEBAR_RAIL_W : SIDEBAR_EXPANDED_W }}
-      className="insight-sidebar-surface relative hidden h-full flex-col border-r border-[var(--sidebar-border)] transition-[width] duration-200 md:flex"
+      className="insight-sidebar-surface relative hidden h-full shrink-0 flex-col border-r border-[var(--sidebar-border)] transition-[width] duration-200 md:flex"
     >
       {/* Header (fixed) */}
       <div className="flex h-16 shrink-0 items-center gap-2 border-b border-[var(--sidebar-border)] px-3">

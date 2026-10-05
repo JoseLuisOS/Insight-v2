@@ -5,7 +5,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { insightDb } from "@/lib/insight-db";
 import { isSysadmin, userCatalogAccess } from "@/lib/insight-catalog";
 import { surveyCode } from "@/lib/survey-codes";
-import { applyColumnMapping, formatOf, parseSurveyFile } from "../../scripts/survey-file";
+import { listSurveyNameChoices } from "@/lib/insight-surveys";
+import { logError } from "@/lib/server-log";
+import { applyColumnMapping, formatOf, parseSurveyFile, sortPreviewValues } from "../../scripts/survey-file";
 
 export const SURVEY_IMPORT_BUCKET = "survey-imports";
 export const SURVEY_IMPORT_MAX_BYTES = 10 * 1024 * 1024;
@@ -14,11 +16,17 @@ export type SurveyImportJob = {
   id: string; organization_id: string; organization_name: string; study_code: string; version: string;
   instrument_code: string; instrument_name: string; source_filename: string;
   preview: { format: string; sheet: string | null; records: number; questions: number; responses: number; warnings: string[];
-    columns: { code: string; label: string; position: number; questionType: string; samples: string[] }[] };
+    columns: { code: string; label: string; position: number; questionType: string; distinctCount?: number; sampleLimit?: number; values?: string[]; samples?: string[] }[] };
   status: string; error_message: string | null; instrument_id: string | null; created_at: string;
-  workflow_run_id: string | null; column_mapping: Record<string, number>;
+  workflow_run_id: string | null; column_mapping: Record<string, number>; can_delete: boolean;
 };
-export type SurveyImportOrganization = { id: string; name: string; code_prefix: string };
+export type SurveyImportOrganization = {
+  id: string; name: string; code_prefix: string; next_study_number: number; next_instrument_number: number;
+};
+export type SurveyImportChoice = {
+  organization_id: string; study_id: string; study_name: string; study_code: string;
+  instrument_id: string | null; instrument_name: string | null; instrument_code: string | null;
+};
 export type SurveyImportProgress = {
   id: string; organization_id: string; organization_name: string; study_name: string; study_code: string;
   instrument_name: string; instrument_code: string; version: string; source_filename: string;
@@ -45,7 +53,11 @@ async function importActor() {
 }
 
 async function createOrganizations(actor: Awaited<ReturnType<typeof importActor>>): Promise<SurveyImportOrganization[]> {
-  const result = await insightDb().query(`select o.id, o.name, o.code_prefix from insight_core.core_organizations o
+  const result = await insightDb().query(`select o.id, o.name, o.code_prefix,
+    (coalesce(seq.study_last, 0) + 1)::int as next_study_number,
+    (coalesce(seq.instrument_last, 0) + 1)::int as next_instrument_number
+    from insight_core.core_organizations o
+    left join insight_survey.survey_code_sequences seq on seq.organization_id = o.id
     where o.status = 'active' and ($2::boolean or exists (
       select 1 from insight_iam.iam_organization_memberships m
       where m.organization_id = o.id and m.user_id = $1 and m.status = 'active'
@@ -71,18 +83,30 @@ async function authorizedOrganization(organizationId: string) {
 export async function getSurveyImportWorkspace() {
   const actor = await importActor();
   const organizations = await createOrganizations(actor);
-  if (!organizations.length) return { organizations, jobs: [] as SurveyImportJob[] };
+  if (!organizations.length) return { organizations, jobs: [] as SurveyImportJob[], choices: [] as SurveyImportChoice[] };
+  const visible = await listSurveyNameChoices();
+  const organizationIds = new Set(organizations.map((organization) => organization.id));
+  const choices: SurveyImportChoice[] = visible.filter((choice) => organizationIds.has(choice.organization_id));
   const result = await insightDb().query(`with selected_jobs as (select j.id, j.organization_id, o.name as organization_name,
     j.study_code, j.instrument_code, j.instrument_name, j.version, j.source_filename, j.preview,
-    j.status, j.error_message, j.instrument_id, j.created_at, j.workflow_run_id, j.column_mapping
+    j.status, j.error_message, j.instrument_id, j.created_at, j.workflow_run_id, j.column_mapping,
+    (j.created_by = $2::uuid or $3::boolean) as can_delete
     from insight_survey.survey_import_jobs j
     join insight_core.core_organizations o on o.id = j.organization_id
     where j.organization_id = any($1::uuid[]))
     select * from selected_jobs
     where status <> 'completed' or id in (
       select id from selected_jobs where status = 'completed' order by created_at desc limit 50
-    ) order by created_at desc`, [organizations.map((org) => org.id)]);
-  return { organizations, jobs: result.rows as SurveyImportJob[] };
+    ) order by created_at desc`, [organizations.map((org) => org.id), actor.userId, actor.admin]);
+  const jobs = result.rows as SurveyImportJob[];
+  for (const job of jobs) {
+    for (const [index, column] of (job.preview?.columns ?? []).entries()) {
+      if (job.status === "ready") column.code = `P${String(index + 1).padStart(3, "0")}`;
+      column.values = sortPreviewValues(column.values ?? column.samples ?? []);
+      column.distinctCount ??= column.values.length;
+    }
+  }
+  return { organizations, jobs, choices };
 }
 
 export async function listUnfinishedSurveyImports(): Promise<SurveyImportProgress[]> {
@@ -97,6 +121,19 @@ export async function listUnfinishedSurveyImports(): Promise<SurveyImportProgres
     where j.organization_id = any($1::uuid[]) and j.status <> 'completed'
     order by j.created_at desc`, [organizations.map((org) => org.id)]);
   return result.rows as SurveyImportProgress[];
+}
+
+export async function listSurveyImportStatuses(ids: string[]): Promise<{ id: string; status: string }[]> {
+  if (!ids.length || ids.length > 50 || ids.some((id) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))) {
+    throw new Error("Selecciona cargas válidas para consultar su estado.");
+  }
+  const actor = await importActor();
+  const organizations = await createOrganizations(actor);
+  if (!organizations.length) return [];
+  const result = await insightDb().query(`select id, status from insight_survey.survey_import_jobs
+    where id = any($1::uuid[]) and organization_id = any($2::uuid[]) order by id`,
+    [ids, organizations.map((organization) => organization.id)]);
+  return result.rows as { id: string; status: string }[];
 }
 
 async function ensureBucket() {
@@ -200,6 +237,22 @@ export async function cancelSurveyImportUpload(id: string) {
     where id = $1 and status = 'uploading'`, [job.id]);
 }
 
+export async function deleteSurveyImportJob(id: string) {
+  const job = await importJobForUser(id);
+  const actor = await importActor();
+  if (!actor.admin && job.created_by !== actor.userId) throw new Error("No puedes eliminar la carga de otro usuario.");
+  const admin = job.storage_path ? await ensureBucket() : null;
+  const deleted = await insightDb().query(`delete from insight_survey.survey_import_jobs
+    where id = $1 and status in ('uploading', 'ready', 'failed') and workflow_run_id is null
+    returning storage_path`, [job.id]);
+  if (!deleted.rows.length) throw new Error("La importación ya inició y no se puede eliminar.");
+  const path = deleted.rows[0].storage_path as string | null;
+  if (path && admin) {
+    const removed = await admin.storage.from(SURVEY_IMPORT_BUCKET).remove([path]);
+    if (removed.error) logError("No se pudo limpiar el archivo de una carga eliminada", removed.error);
+  }
+}
+
 async function uploadedBytes(job: { storage_path: string; source_filename: string }) {
   const admin = await ensureBucket();
   const downloaded = await admin.storage.from(SURVEY_IMPORT_BUCKET).download(job.storage_path);
@@ -228,10 +281,10 @@ export async function queueSurveyImportJob(id: string, confirmWarnings: boolean,
   if (job.preview.warnings?.length && !confirmWarnings) throw new Error("Revisa y confirma las advertencias antes de importar.");
   const buffer = await uploadedBytes(job);
   if (createHash("sha256").update(buffer).digest("hex") !== job.source_sha256) throw new Error("El archivo cambió desde la validación.");
-  applyColumnMapping(await parseSurveyFile(buffer, job.source_filename), mapping);
+  const parsed = applyColumnMapping(await parseSurveyFile(buffer, job.source_filename), mapping);
   const updated = await insightDb().query(`update insight_survey.survey_import_jobs
-    set status = 'queued', column_mapping = $2::jsonb, updated_at = now()
-    where id = $1 and status = 'ready' returning id`, [id, JSON.stringify(mapping)]);
+    set status = 'queued', column_mapping = $2::jsonb, preview = $3::jsonb, updated_at = now()
+    where id = $1 and status = 'ready' returning id`, [id, JSON.stringify(mapping), JSON.stringify(parsed.preview)]);
   if (!updated.rows.length) throw new Error("La importación ya se inició.");
   return { id };
 }

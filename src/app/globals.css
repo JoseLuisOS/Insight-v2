@@ -190,6 +190,46 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+body:has(.insight-app-shell) {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.insight-app-shell :is(button, input[type="button"], input[type="submit"], input[type="reset"], [role="button"]):not(:disabled):not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+.insight-app-shell *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.insight-app-shell *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.insight-app-shell *::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--primary) 38%, var(--border));
+}
+
+.insight-app-shell *::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--primary) 62%, var(--border));
+}
+
+.insight-app-shell *::-webkit-scrollbar-button,
+.insight-app-shell *::-webkit-scrollbar-button:single-button:vertical:decrement,
+.insight-app-shell *::-webkit-scrollbar-button:single-button:vertical:increment,
+.insight-app-shell *::-webkit-scrollbar-button:single-button:horizontal:decrement,
+.insight-app-shell *::-webkit-scrollbar-button:single-button:horizontal:increment,
+.insight-app-shell *::-webkit-scrollbar-button:start:decrement,
+.insight-app-shell *::-webkit-scrollbar-button:end:increment {
+  display: none !important;
+  width: 0;
+  height: 0;
+}
+
 /* Shared header surfaces keep the light/dark ink contrast intentional. */
 .insight-card-header,
 .insight-shell-chrome {

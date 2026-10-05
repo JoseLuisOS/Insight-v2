@@ -4,6 +4,9 @@ Logfiles detallados de sesiones y tareas de desarrollo. A diferencia de
 [`../docs/LOG.md`](../docs/LOG.md) (bitácora resumida, versionada), aquí van salidas crudas y
 notas largas que no conviene meter en la bitácora principal.
 
+Los errores que registra la aplicación se agregan automáticamente a `application.log`
+con fecha y hora `YYYY/MM/DD HH24:MI:SS.SSS`. El archivo se crea al ocurrir el primer error.
+
 ## Convención de nombres
 
 ```

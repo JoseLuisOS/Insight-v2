@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentSysadmin } from "@/lib/insight-catalog";
 import { listOrganizations, saveOrganization } from "@/lib/insight-organizations";
+import { logError } from "@/lib/server-log";
 
 const forbidden = () => NextResponse.json({ error: "Acceso exclusivo de sysadmin." }, { status: 403 });
 
@@ -17,7 +18,7 @@ async function mutate(request: Request, edit: boolean) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo guardar la organización.";
     const known = /^(Datos|Campo|Organización|El nombre|El prefijo|Zona horaria|Estado|No se pudo generar|Ya existe|La organización)/.test(message);
-    if (!known) console.error("Error en Organizaciones Insight", error);
+    if (!known) logError("Error en Organizaciones Insight", error);
     return NextResponse.json({ error: known ? message : "No se pudo guardar la organización." }, { status: known ? 400 : 500 });
   }
 }

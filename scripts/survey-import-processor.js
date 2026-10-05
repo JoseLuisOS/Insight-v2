@@ -64,6 +64,9 @@ async function loadBook(job) {
       parsed.preview.responses !== job.preview.responses || parsed.preview.format !== job.preview.format) {
     throw new Error('La estructura del archivo cambió desde la validación.');
   }
+  if (['queued', 'processing'].includes(job.status) && job.preview.columns?.length === parsed.variables.length) {
+    parsed.variables.forEach((variable, index) => { variable.code = job.preview.columns[index].code; });
+  }
   return applyColumnMapping(parsed, job.column_mapping);
 }
 
@@ -111,10 +114,10 @@ async function prepareImport(jobId) {
       await copy(client, 'survey_sections', ['id','instrument_version_id','code','title','position','organization_id'],
         [[sectionId, versionId, 'CUESTIONARIO', 'Cuestionario', 1, job.organization_id]]);
       const questions = [], variables = [], options = [];
-      for (const variable of book.variables) {
+      for (const [questionIndex, variable] of book.variables.entries()) {
         const questionId = randomUUID(), variableId = randomUUID();
         questions.push([questionId, versionId, sectionId, variable.code, variable.label, variable.questionType,
-          variable.position + 1, false, JSON.stringify({ source_column: variable.sourceHeader,
+          questionIndex + 1, false, JSON.stringify({ source_column: variable.sourceHeader,
             source_position: variable.position, value_source_position: variable.valueSourcePosition ?? variable.position }), job.organization_id]);
         variables.push([variableId, questionId, variable.code, variable.label, variable.dataType, null,
           JSON.stringify({ source_column: variable.sourceHeader }), job.organization_id]);

@@ -1,15 +1,15 @@
 # Matriz de pruebas — carga de encuestas
 
-Fecha: 2026-09-29. Archivos de prueba en la raíz: `encuesta_sintetica_20p_100r.{txt,csv,xlsx,xls,ods,json}`. Cada uno contiene 20 preguntas, 100 registros y 2 000 respuestas. Los tabulares tienen columnas desordenadas; las hojas de cálculo incluyen una segunda hoja `Ignorar`.
+Fecha: 2026-10-03. Hay ocho archivos `encuesta_sintetica_20p_100r*` en la raíz: JSON, CSV, TXT tabulado, TXT delimitado por pipe, TXT delimitado por punto y coma, XLSX, XLS y ODS. Todos representan una encuesta cotidiana de compras de despensa en Hermosillo con 20 preguntas redactadas, 100 respuestas y 2 000 valores. Los tabulares tienen columnas desordenadas; las hojas de cálculo incluyen una segunda hoja `Ignorar`.
 
 Estados: **Automatizada** = cubierta por `node scripts/verify-survey-fixture.js`; **Pendiente E2E** = requiere probar la aplicación desplegada, Storage, Workflow y PostgreSQL con una organización de prueba.
 
 | Caso | Entrada / acción | Resultado esperado | Estado |
 | --- | --- | --- | --- |
-| F01–F06 | Validar cada uno de los seis archivos sintéticos | 20 preguntas, 100 registros, 2 000 respuestas; IDs y valores coinciden | Automatizada |
-| F07 | XLSX, XLS y ODS con segunda hoja `Ignorar` | Solo `Respuestas` se lee; no aparece `NO_IMPORTAR` | Automatizada |
-| F08 | TXT tabulado y CSV con encabezados reordenados | Se detectan columnas por encabezado, no por posición | Automatizada |
-| F09 | Intercambiar dos orígenes en vista previa | La respuesta importada de cada pregunta procede de la nueva columna | Parser automatizado; UI pendiente E2E |
+| F01–F08 | Validar cada archivo sintético en los seis formatos admitidos y sus variantes delimitadas | 20 preguntas redactadas, 100 registros, 2 000 respuestas; IDs y valores coinciden | Automatizada |
+| F09 | XLSX, XLS y ODS con segunda hoja `Ignorar` | Solo `Respuestas` se lee; no aparece `NO_IMPORTAR` | Automatizada |
+| F10 | TXT tabulado, TXT pipe, TXT punto y coma y CSV con encabezados reordenados | Se detectan columnas por pregunta, no por posición; los encabezados son preguntas completas | Automatizada |
+| F11 | Intercambiar dos orígenes en vista previa | La respuesta importada de cada pregunta procede de la nueva columna | Parser automatizado; UI pendiente E2E |
 | V01 | Encabezado duplicado | Validación rechazada con columna indicada | Automatizada |
 | V02 | ID duplicado | Validación rechazada con fila indicada | Automatizada |
 | V03 | Dato en columna sin encabezado | Validación rechazada con fila indicada | Automatizada |

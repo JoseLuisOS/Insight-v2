@@ -6,6 +6,7 @@ const missingTokens = new Set(['na', 'n/a', 'ns/nc', 'ns-nc']);
 const normalize = (value) => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f\u200e\u200f]/g, '').trim().toLocaleLowerCase('es').replace(/\s+/g, ' ');
 const absent = (value) => missingTokens.has(normalize(value));
 const codeFromHeader = (value) => normalize(value).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 100);
+const questionCode = (index) => `P${String(index + 1).padStart(3, '0')}`;
 const supported = new Set(['txt', 'csv', 'xlsx', 'xls', 'ods', 'json']);
 
 function formatOf(filename) {
@@ -42,6 +43,34 @@ function inferVariable(code, label, values, position, sourceHeader) {
   };
 }
 
+function previewValues(records, index) {
+  const distinct = new Set();
+  for (const record of records) {
+    const value = record.values[index];
+    if (value !== null && value !== '') distinct.add(String(value));
+  }
+  const values = [...distinct];
+  const sampleLimit = values.some((value) => value.trim().split(/\s+/u).length > 7) ? 10 : 25;
+  if (values.length > sampleLimit) {
+    for (let i = values.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [values[i], values[j]] = [values[j], values[i]];
+    }
+  }
+  const shown = sortPreviewValues(values.slice(0, sampleLimit));
+  return { distinctCount: values.length, sampleLimit, values: shown };
+}
+
+function sortPreviewValues(values) {
+  const collator = new Intl.Collator('es', { numeric: true, sensitivity: 'base' });
+  return [...values].sort((left, right) => {
+    const leftNumber = Number(left.trim().replace(',', '.'));
+    const rightNumber = Number(right.trim().replace(',', '.'));
+    const bothNumeric = left.trim() !== '' && right.trim() !== '' && Number.isFinite(leftNumber) && Number.isFinite(rightNumber);
+    return bothNumeric && leftNumber !== rightNumber ? leftNumber - rightNumber : collator.compare(left, right);
+  });
+}
+
 function fromRows(inputRows, sheet, format) {
   const rows = inputRows.filter((row) => Array.isArray(row) && row.some((value) => value !== null && value !== undefined && String(value).trim() !== ''));
   if (rows.length < 2) throw new Error('Faltan encabezados o registros.');
@@ -58,12 +87,13 @@ function fromRows(inputRows, sheet, format) {
   const columnIndexes = header.map((_, index) => index).filter((index) => index !== idIndex);
   inspectLimits(columnIndexes.length, rows.length - firstData);
   const codes = new Set();
-  const variables = columnIndexes.map((position) => {
+  const variables = columnIndexes.map((position, index) => {
     const sourceHeader = String(header[position] ?? '').trim();
-    const code = codeFromHeader(sourceHeader);
+    const normalizedHeader = codeFromHeader(sourceHeader);
+    const code = questionCode(index);
     const label = String(labels[position] ?? sourceHeader).trim();
-    if (!code || !label || codes.has(code)) throw new Error(`Encabezado vacío o duplicado en la columna ${position + 1}.`);
-    codes.add(code);
+    if (!normalizedHeader || !label || codes.has(normalizedHeader)) throw new Error(`Encabezado vacío o duplicado en la columna ${position + 1}.`);
+    codes.add(normalizedHeader);
     const values = rows.slice(firstData).map((row) => row[position]);
     return inferVariable(code, label, values, position, sourceHeader);
   });
@@ -82,7 +112,7 @@ function fromRows(inputRows, sheet, format) {
     responses: records.length * variables.length, warnings,
     columns: variables.map((variable, index) => ({ code: variable.code, label: variable.label,
       position: variable.position, questionType: variable.questionType,
-      samples: records.map((record) => record.values[index]).filter((value) => value !== null && value !== '').slice(0, 3).map((value) => String(value).slice(0, 120)) })),
+      ...previewValues(records, index) })),
   } };
 }
 
@@ -96,10 +126,11 @@ function fromJson(buffer) {
   inspectLimits(document.questions.length, document.responses.length);
   const codes = new Set();
   const variables = document.questions.map((question, position) => {
-    const code = String(question?.code ?? '').trim();
+    const sourceCode = String(question?.code ?? '').trim();
+    const code = questionCode(position);
     const label = String(question?.text ?? '').trim();
-    if (!/^[\p{L}\p{N}_-]{1,100}$/u.test(code) || codes.has(code) || !label) throw new Error(`Pregunta inválida o duplicada en la posición ${position + 1}.`);
-    codes.add(code);
+    if (!/^[\p{L}\p{N}_-]{1,100}$/u.test(sourceCode) || codes.has(sourceCode) || !label) throw new Error(`Pregunta inválida o duplicada en la posición ${position + 1}.`);
+    codes.add(sourceCode);
     const questionType = String(question.type ?? 'text');
     if (!['text', 'number', 'integer', 'single_choice', 'scale'].includes(questionType)) throw new Error(`Tipo de pregunta no admitido: ${questionType}.`);
     const options = Array.isArray(question.options) ? question.options.map((option) => ({
@@ -108,7 +139,7 @@ function fromJson(buffer) {
     if (options.some((option) => !option.code || !option.label) || new Set(options.map((option) => option.code)).size !== options.length) {
       throw new Error(`Opciones inválidas en ${code}.`);
     }
-    return { code, label, position, sourceHeader: code, questionType,
+    return { code, label, position, sourceHeader: sourceCode, questionType,
       dataType: ['number','integer','scale'].includes(questionType) ? 'number' : questionType === 'single_choice' ? 'categorical' : 'text', options };
   });
   const ids = new Set();
@@ -121,7 +152,7 @@ function fromJson(buffer) {
     ids.add(externalId);
     const unknown = Object.keys(answers).find((key) => !codes.has(key));
     if (unknown) throw new Error(`Respuesta ${externalId}: pregunta desconocida ${unknown}.`);
-    return { externalId, values: variables.map((variable) => safeCell(answers[variable.code], index + 1, variable.position + 1)) };
+    return { externalId, values: variables.map((variable) => safeCell(answers[variable.sourceHeader], index + 1, variable.position + 1)) };
   });
   const warnings = [];
   for (const [position, variable] of variables.entries()) {
@@ -146,7 +177,7 @@ function fromJson(buffer) {
     questions: variables.length, responses: records.length * variables.length, warnings,
     columns: variables.map((variable, index) => ({ code: variable.code, label: variable.label,
       position: variable.position, questionType: variable.questionType,
-      samples: records.map((record) => record.values[index]).filter((value) => value !== null && value !== '').slice(0, 3).map((value) => String(value).slice(0, 120)) })),
+      ...previewValues(records, index) })),
   } };
 }
 
@@ -155,11 +186,11 @@ function applyColumnMapping(book, mapping) {
   if (book.format === 'json') throw new Error('JSON ya relaciona cada respuesta por código de pregunta.');
   const positions = book.variables.map((variable) => variable.position);
   const assigned = book.variables.map((variable) => {
-    const requested = mapping[variable.code];
+    const requested = mapping[codeFromHeader(variable.sourceHeader)] ?? mapping[variable.code];
     return requested === undefined ? variable.position : Number(requested);
   });
   if (assigned.some((position) => !positions.includes(position)) || new Set(assigned).size !== positions.length ||
-      Object.keys(mapping).some((code) => !book.variables.some((variable) => variable.code === code))) {
+      Object.keys(mapping).some((code) => !book.variables.some((variable) => variable.code === code || codeFromHeader(variable.sourceHeader) === code))) {
     throw new Error('El mapeo de columnas debe asignar cada columna de valores una sola vez.');
   }
   const sourceIndexes = assigned.map((position) => positions.indexOf(position));
@@ -195,4 +226,4 @@ async function parseSurveyFile(buffer, filename) {
   throw new Error('Formato no admitido.');
 }
 
-module.exports = { parseSurveyFile, applyColumnMapping, formatOf, normalize, absent };
+module.exports = { parseSurveyFile, applyColumnMapping, formatOf, normalize, absent, sortPreviewValues };

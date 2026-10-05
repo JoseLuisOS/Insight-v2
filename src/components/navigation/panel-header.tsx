@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import { Bell, Menu } from "lucide-react";
-import { findActiveNav, type NavGroup } from "@/lib/nav";
+import { findActiveNav, getDocumentTitle, type NavGroup } from "@/lib/nav";
 import { NavIcon } from "./nav-icon";
 import { Clock } from "./clock";
 import { FullscreenButton } from "./fullscreen-button";
@@ -19,8 +20,14 @@ import { useMobileNav } from "./mobile-nav-context";
  */
 export function PanelHeader({ nav }: { nav: NavGroup[] }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const documentTitle = getDocumentTitle(nav, pathname, searchParams.get("view"));
   const { toggle } = useMobileNav();
   const { group, active } = findActiveNav(nav, pathname);
+
+  useEffect(() => {
+    document.title = documentTitle;
+  }, [documentTitle]);
 
   const hamburger = (
     <button

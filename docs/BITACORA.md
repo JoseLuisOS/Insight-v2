@@ -1,5 +1,239 @@
 # Bitácora de desarrollo — Insight-v2
 
+## 2026-10-05 — Aviso para eliminaciones grandes
+
+- **¿Qué?**
+  - Los diálogos de estudio e instrumento muestran un aviso antes de sus botones cuando la estimación supera 100,000 respuestas.
+- **¿Por qué?**
+  - El borrado por lotes puede tardar un par de minutos en catálogos grandes.
+- **¿Para qué?**
+  - Informar el tiempo esperado y pedir que se mantenga abierto el diálogo mientras termina la operación.
+
+## 2026-10-05 — Eliminación por lotes de datos de encuesta
+
+- **¿Qué?**
+  - La eliminación de estudios, instrumentos y versiones procesa respuestas y observaciones en lotes de 1,000 filas dentro de la transacción.
+- **¿Por qué?**
+  - Una sola sentencia para borrar todos los datos de un estudio excedía el `statement_timeout`.
+- **¿Para qué?**
+  - Mantener la eliminación atómica y evitar que una sentencia masiva agote su límite de ejecución.
+
+## 2026-10-05 — Borrado de estudios con observaciones
+
+- **¿Qué?**
+  - La eliminación de un estudio borra las observaciones de todas sus versiones antes de eliminar el estudio y sus instrumentos.
+- **¿Por qué?**
+  - La FK de `survey_observations.instrument_version_id` restringe el borrado en cascada de las versiones.
+- **¿Para qué?**
+  - Permitir que la eliminación confirmada del estudio complete en una transacción junto con sus respuestas y demás datos dependientes.
+
+## 2026-10-04 — Búsqueda del instrumento al importar
+
+- **¿Qué?**
+  - El buscador de instrumento sugiere instrumentos de estudios seleccionados o coincidentes con el texto del estudio, e identifica el estudio asociado al elegir una sugerencia.
+- **¿Por qué?**
+  - Las sugerencias solo aparecían después de seleccionar exactamente el estudio, por lo que el campo parecía un texto simple.
+- **¿Para qué?**
+  - Hacer visible la búsqueda de instrumentos previos y mantener la posibilidad de escribir nombres nuevos.
+
+## 2026-10-04 — Nombres en las barras y borrado de observaciones
+
+- **¿Qué?**
+  - Las barras de estudio e instrumento muestran sus nombres en negritas. La eliminación de versiones borra antes sus observaciones y respuestas dependientes.
+- **¿Por qué?**
+  - Las barras tenían etiquetas genéricas y la restricción de clave foránea de las observaciones impedía eliminar versiones.
+- **¿Para qué?**
+  - Identificar claramente el elemento administrado y permitir eliminar versiones junto con los datos que pertenecen a ellas.
+
+## 2026-10-04 — Eliminar cuestionario desde su resumen
+
+- **¿Qué?**
+  - La acción y el diálogo para eliminar versiones se movieron del detalle interno al pie del resumen del instrumento, junto a su metadata y antes de abrir el cuestionario.
+- **¿Por qué?**
+  - La barra debía estar disponible desde la vista de resumen del instrumento, como la acción del estudio.
+- **¿Para qué?**
+  - Mantener la administración del instrumento en su contexto de catálogo y dejar el cuestionario dedicado al análisis.
+
+## 2026-10-04 — Barra de eliminación al pie del cuestionario
+
+- **¿Qué?**
+  - La acción para eliminar versiones del cuestionario se reubicó al pie del área de trabajo, debajo de los paneles de análisis o de la tabla, con el estilo del pie de eliminación del estudio.
+- **¿Por qué?**
+  - La barra anterior aparecía dentro de la columna de análisis y se desplazaba con su contenido.
+- **¿Para qué?**
+  - Mantener la acción accesible en el mismo lugar mientras se navega por las preguntas, las respuestas y la tabla.
+
+## 2026-10-04 — Eliminación de estudios y confirmación por nombre
+
+- **¿Qué?**
+  - Se añadió la eliminación de estudios con todos sus instrumentos y datos descendientes. El estudio y el cuestionario ahora exigen escribir su nombre para confirmar; la selección de versiones del cuestionario se conserva.
+- **¿Por qué?**
+  - Faltaba administrar el estudio completo y la confirmación anterior podía activarse sin identificar explícitamente el elemento que se iba a borrar.
+- **¿Para qué?**
+  - Permitir una eliminación consciente, con permisos y visibilidad comprobados en el servidor, y conservar el historial de importaciones desvinculado.
+
+## 2026-10-04 — Título por vista en Encuestas
+
+- **¿Qué?**
+  - Encuestas, Estudios, Importar cuestionario, Cuestionario, Tabla de registros y Registros declaran metadatos de título en sus rutas; las vistas activas también actualizan el título y se reflejan en la URL. Se fijó como regla que cada vista tenga título de documento y encabezado visible.
+- **¿Por qué?**
+  - El título dependía solo de un efecto del cliente y no estaba presente de forma fiable en la respuesta inicial; tampoco distinguía las vistas que se seleccionan mediante parámetros.
+- **¿Para qué?**
+  - Identificar la vista activa al navegar y conservar títulos claros en todas las páginas.
+
+## 2026-10-04 — Búsqueda de estudios e instrumentos al importar
+
+- **¿Qué?**
+  - Los nombres del formulario sugieren coincidencias del catálogo visible según organización y estudio, admiten texto nuevo y muestran el código existente cuando hay coincidencia exacta.
+- **¿Por qué?**
+  - Era necesario localizar y reutilizar estudios e instrumentos previos sin perder la posibilidad de crear otros.
+- **¿Para qué?**
+  - Reducir errores de nombre y anticipar el código que conservará una carga reutilizada.
+
+## 2026-10-04 — Aviso de versión duplicada
+
+- **¿Qué?**
+  - La versión repetida aparece en un único aviso rojo con borde punteado y fondo translúcido, junto con el enlace para revisar la encuesta o carga. Se usa el token `danger` del tema y la representación excluye el error general.
+- **¿Por qué?**
+  - El mensaje se duplicaba entre un error general y un banner azul; el primer ajuste usó el token inexistente `destructive`, por lo que tampoco se veía rojo.
+- **¿Para qué?**
+  - Hacer evidente el conflicto y la siguiente versión disponible sin repetir el aviso.
+
+## 2026-10-04 — Folios previos al importar encuestas
+
+- **¿Qué?**
+  - El formulario muestra el siguiente folio de estudio e instrumento según los contadores de la organización, con el mismo formato que usa la reserva definitiva.
+- **¿Por qué?**
+  - Las dos vistas previas estaban fijas en `A001` aunque ya existieran cargas nuevas.
+- **¿Para qué?**
+  - Anticipar códigos coherentes al crear un estudio e instrumento sin alterar la reserva atómica al preparar la carga.
+
+## 2026-10-04 — Enlace del registro en el análisis
+
+- **¿Qué?**
+  - El acceso a la tabla pasó del valor de respuesta al código del registro; la flecha se muestra en hover y foco de teclado.
+- **¿Por qué?**
+  - El código identifica el registro completo y es el punto natural para volver a la tabla.
+- **¿Para qué?**
+  - Mantener legibles los valores y conservar el foco en la fila y celda relacionadas.
+
+## 2026-10-04 — Regreso de respuestas a la tabla
+
+- **¿Qué?**
+  - Cada respuesta de una pregunta abre la página de tabla que contiene su registro y destaca la celda de la variable correspondiente.
+- **¿Por qué?**
+  - La navegación desde la tabla al análisis de pregunta necesitaba un camino de regreso al dato concreto.
+- **¿Para qué?**
+  - Mantener el contexto de registro y respuesta al alternar entre ambas vistas.
+
+## 2026-10-04 — Foco y carga de preguntas en el cuestionario
+
+- **¿Qué?**
+  - El menú centra la pregunta activa después de navegar y la carga se muestra desde el clic, tanto en el panel como al entrar desde la tabla.
+- **¿Por qué?**
+  - El menú volvía al inicio y las transiciones breves no siempre mostraban una señal de carga.
+- **¿Para qué?**
+  - Mantener visible la selección y confirmar de inmediato que el análisis está cargando.
+
+## 2026-10-04 — Navegación desde columnas del cuestionario
+
+- **¿Qué?**
+  - Los encabezados de la tabla abren la pregunta exacta en «Por pregunta»; los IDs de registro dejaron de ser enlaces y la antigua pantalla de respuestas redirige al cuestionario.
+- **¿Por qué?**
+  - La tabla ya concentra la lectura por registro y la pantalla separada duplicaba esa función.
+- **¿Para qué?**
+  - Pasar de la matriz al análisis de una pregunta sin abandonar el cuestionario.
+
+## 2026-10-04 — Vista tabular del cuestionario
+
+- **¿Qué?**
+  - Se agregó el selector «Tabla / Por pregunta» y una matriz paginada de registros y variables con tamaños de 25 a 500 filas.
+- **¿Por qué?**
+  - El cuestionario solo permitía revisar el análisis de una pregunta a la vez.
+- **¿Para qué?**
+  - Consultar respuestas completas por registro sin salir del instrumento y cargar solo el bloque visible.
+
+## 2026-10-04 — Registros de pregunta en el panel de análisis
+
+- **¿Qué?**
+  - «Ver registros» ahora sustituye las estadísticas por respuestas paginadas dentro del mismo panel, con «Volver a Estadísticas»; la ruta anterior redirige a la vista integrada.
+- **¿Por qué?**
+  - Consultar respuestas por pregunta obligaba a abandonar el análisis del cuestionario.
+- **¿Para qué?**
+  - Alternar entre estadísticas y registros sin salir del cuestionario.
+
+## 2026-10-04 — Títulos de pestaña por módulo
+
+- **¿Qué?**
+  - El título del navegador ahora identifica el módulo activo y agrega el submódulo en rutas anidadas.
+- **¿Por qué?**
+  - La pestaña mantenía siempre el nombre genérico de la aplicación.
+- **¿Para qué?**
+  - Reconocer la sección abierta al cambiar entre módulos y páginas internas.
+
+## 2026-10-04 — Barra de acciones y formato de fechas en Encuestas
+
+- **¿Qué?**
+  - Se movió Eliminar a una barra debajo del análisis y se formatearon las fechas de vigencia antes de renderizarlas.
+- **¿Por qué?**
+  - La acción debía quedar separada del panel y los valores `Date` de PostgreSQL provocaban un error de renderizado en React.
+- **¿Para qué?**
+  - Mantener el análisis despejado y mostrar fechas sin pasar objetos directamente como contenido.
+
+## 2026-10-04 — Bloqueo de scroll durante el análisis
+
+- **¿Qué?**
+  - El área de análisis de Encuestas vuelve arriba y bloquea el desplazamiento mientras carga una pregunta; lo libera al recibirla.
+- **¿Por qué?**
+  - El indicador de carga debe permanecer visible y el contenido anterior no debe seguir desplazándose durante la espera.
+- **¿Para qué?**
+  - Mantener el foco en el estado de carga hasta mostrar el análisis solicitado.
+
+## 2026-10-04 — Loader compartido en Encuestas
+
+- **¿Qué?**
+  - Se reutilizó `CubeLoader` en la carga del cuestionario y del análisis de pregunta, con el texto centrado debajo.
+- **¿Por qué?**
+  - Encuestas usaba un indicador distinto al estado de carga inicial del panel.
+- **¿Para qué?**
+  - Mantener una señal de carga consistente en las dos navegaciones de Encuestas.
+
+## 2026-10-04 — Metadatos y gestión de versiones en Encuestas
+
+- **¿Qué?**
+  - Se expandió automáticamente el estudio activo, se añadieron fecha, autor y procedencia al detalle del instrumento, indicadores de carga para el cuestionario y sus preguntas, y eliminación selectiva de versiones con confirmación.
+- **¿Por qué?**
+  - La navegación no reflejaba la selección activa, el análisis tardaba sin señal visible y faltaba contexto y control sobre versiones cargadas.
+- **¿Para qué?**
+  - Consultar mejor el origen del instrumento, percibir la carga y retirar versiones o cuestionarios desde su vista con autorización `survey.delete`.
+
+## 2026-10-04 — Espacio de Encuestas y análisis por pregunta
+
+- **¿Qué?**
+  - Se organizó la pantalla principal en catálogo por estudio, resumen contextual y tarjeta de importación; el cuestionario ahora muestra preguntas, métricas, distribución y selector de versión.
+- **¿Por qué?**
+  - El listado y el detalle anteriores separaban el contexto del análisis y dejaban las respuestas fuera de la vista inmediata.
+- **¿Para qué?**
+  - Localizar instrumentos por estudio y analizar cada pregunta y versión dentro del área de trabajo.
+
+## 2026-10-04 — Respuestas por pregunta en Encuestas
+
+- **¿Qué?**
+  - Cada pregunta del Cuestionario abre sus respuestas paginadas por registro, con enlace al detalle completo de cada registro.
+- **¿Por qué?**
+  - Las filas de preguntas parecían seleccionables, pero no tenían ninguna acción.
+- **¿Para qué?**
+  - Consultar una pregunta en todos los registros sin perder la vista existente por registro.
+
+## 2026-10-04 — Marca de tiempo en logs de aplicación
+
+- **¿Qué?**
+  - Se centralizó la emisión de errores del servidor con fecha y hora `YYYY/MM/DD HH24:MI:SS.SSS` y se agregó escritura en `logs/application.log`.
+- **¿Por qué?**
+  - Los mensajes existentes no indicaban cuándo ocurrió cada error.
+- **¿Para qué?**
+  - Facilitar la correlación de errores de la aplicación con solicitudes y tareas tanto en la terminal como en un archivo local.
+
 ## 2026-10-02 — Prefijos, códigos y versiones de Encuestas
 
 - **¿Qué?**
@@ -388,3 +622,128 @@ Registro de cambios del producto y de su documentación operativa. Se conserva c
   - Una carga ya enviada era visible únicamente tras entrar en «Importar cuestionario», una acción que sugiere crear otra carga.
 - **¿Para qué?**
   - Encontrar y resolver una importación pendiente sin iniciar accidentalmente una nueva.
+
+## 2026-10-03 — Fixtures de Encuestas con escenarios cotidianos
+
+- **¿Qué?**
+  - Se reemplazaron los identificadores que simulaban preguntas por preguntas sobre compras habituales de despensa y respuestas sintéticas coherentes en ocho archivos.
+- **¿Por qué?**
+  - Los fixtures anteriores ejercitaban el parser, pero no se parecían a una encuesta que respondería una persona en una situación real.
+- **¿Para qué?**
+  - Probar la importación con etiquetas comprensibles, opciones plausibles y respuestas que permiten revisar la experiencia completa.
+
+## 2026-10-03 — Sidebar fijo durante el desplazamiento
+
+- **¿Qué?**
+  - El sidebar conserva la altura de la ventana y queda anclado arriba mientras el contenido principal se desplaza.
+- **¿Por qué?**
+  - Al recorrer Encuestas hasta el final, el sidebar se movía junto con la página.
+- **¿Para qué?**
+  - Mantener la navegación disponible y estable durante el uso del módulo.
+
+## 2026-10-03 — Revisión de valores y eliminación de cargas
+
+- **¿Qué?**
+  - La revisión de preguntas muestra hasta 25 valores distintos aleatorios por columna y permite eliminar con confirmación una carga que aún no se procesó.
+  - Las acciones Eliminar e Importar se alinean a la derecha y el área principal conserva su propio desplazamiento frente al sidebar.
+- **¿Por qué?**
+  - El selector anterior parecía editar respuestas en vez de revisar su contenido; una carga errónea necesitaba una salida clara.
+- **¿Para qué?**
+  - Detectar errores en los datos antes de importar y retirar archivos incorrectos sin dejar una carga pendiente.
+
+## 2026-10-03 — Códigos de preguntas y límite de desplazamiento
+
+- **¿Qué?**
+  - Las preguntas importadas reciben códigos consecutivos `P###` y la muestra se limita a 10 valores cuando alguna respuesta de la columna supera siete palabras.
+  - El documento del panel deja de desplazarse; el contenido principal y la navegación conservan scroll interno.
+  - Las acciones habilitadas del panel muestran el cursor de mano, incluido el botón de pantalla completa del header.
+- **¿Por qué?**
+  - Los códigos basados en el texto eran largos y variables; las respuestas abiertas ocupaban demasiado espacio, y el scroll raíz permitía bajar más allá del sidebar.
+- **¿Para qué?**
+  - Mantener identificadores predecibles, revisar valores con una muestra proporcionada y estabilizar la navegación y sus acciones.
+
+## 2026-10-03 — Orden y encabezados de la vista de valores
+
+- **¿Qué?**
+  - Los valores distintos se ordenan por texto o número; la etiqueta distingue los valores completos de la muestra aleatoria y la pastilla muestra cuántos se ven.
+- **¿Por qué?**
+  - El conteo total y la etiqueta anterior no describían con claridad los valores presentados.
+- **¿Para qué?**
+  - Hacer evidente qué tipo de muestra se revisa y cuántos valores contiene.
+
+## 2026-10-03 — Barras de desplazamiento discretas
+
+- **¿Qué?**
+  - Las barras de desplazamiento del panel tienen pista transparente, pulgar de 6 px acorde al tema y no muestran flechas.
+- **¿Por qué?**
+  - Las barras visibles ocupaban demasiado espacio y añadían controles de flecha innecesarios.
+- **¿Para qué?**
+  - Mantener disponible el desplazamiento con menos peso visual.
+
+## 2026-10-03 — Corrección de flechas y muestras de valores
+
+- **¿Qué?**
+  - Se retiró la propiedad que hacía prevalecer el scroll nativo con flechas; las muestras guardadas se ordenan al mostrarse y el conteo usa una pastilla azul.
+  - El encabezado «Valores muestra» aparece cuando la columna supera 25 distintos o aplica el límite de respuestas extensas.
+- **¿Por qué?**
+  - El navegador seguía usando el scroll nativo y algunas cargas ya validadas conservaban valores desordenados.
+- **¿Para qué?**
+  - Mostrar la barra y la revisión de valores tal como se definieron para la pantalla.
+
+## 2026-10-03 — Carga inicial de importaciones sin descarga
+
+- **¿Qué?**
+  - La lista de importaciones usa la vista previa guardada; el archivo se vuelve a leer al confirmar Importar y entonces se actualiza esa vista previa.
+- **¿Por qué?**
+  - Descargar archivos durante el render podía dejar la pantalla cargando si Storage tardaba o fallaba.
+- **¿Para qué?**
+  - Abrir la página sin depender de la descarga y conservar la validación antes de procesar.
+
+## 2026-10-03 — Ejecutor local de importaciones con HTTPS
+
+- **¿Qué?**
+  - El arranque HTTPS configura Workflow con el mismo origen y la CA local de mkcert cuando existe.
+- **¿Por qué?**
+  - La cola llamaba por HTTP a un servidor que escucha por HTTPS y fallaba con `fetch failed`.
+- **¿Para qué?**
+  - Permitir que las importaciones en desarrollo avancen después de pulsar «Importar».
+
+## 2026-10-03 — Actualización automática de cargas
+
+- **¿Qué?**
+  - Las secciones de cargas en Encuestas e Importaciones consultan sus estados mientras hay trabajos activos y la pestaña está visible; refrescan la vista solo cuando cambia un estado.
+- **¿Por qué?**
+  - El procesamiento terminaba en segundo plano, pero la pantalla conservaba el estado «En espera» hasta pulsar F5.
+- **¿Para qué?**
+  - Mostrar el estado final y el catálogo actualizado sin interrumpir filtros, formularios o desplazamiento.
+## 2026-10-05 — Ajuste de eliminación de encuestas grandes
+
+- ¿Qué?
+  - Se redujeron a 100 filas los lotes de respuestas y observaciones, y las transacciones de eliminación permiten hasta cinco minutos por sentencia.
+  - El aviso de operaciones grandes ahora usa fondo ámbar opaco y tinta ocre oscura tanto en tema claro como oscuro.
+- ¿Por qué?
+  - La eliminación de un estudio grande seguía alcanzando el límite de tiempo de PostgreSQL.
+  - El texto claro usado en tema oscuro seguía viéndose amarillo y tenía poco contraste.
+- ¿Para qué?
+  - Dar más margen a cada paso del borrado y facilitar la lectura del aviso antes de confirmar.
+
+## 2026-10-05 — Revisión completa de preguntas al importar
+
+- ¿Qué?
+  - La validación permite desplegar todas las preguntas del archivo y volver a la vista inicial de 30.
+  - El buscador de preguntas filtra el conjunto completo, incluso cuando está contraído.
+- ¿Por qué?
+  - Los archivos con más de 30 preguntas no permitían revisar todas antes de importarlos.
+- ¿Para qué?
+  - Inspeccionar cualquier pregunta y sus valores antes de confirmar la carga.
+
+## 2026-10-05 — Carga y orden en Encuestas
+
+- ¿Qué?
+  - Los botones «Validar archivo» e «Importar» muestran `CubeLoader` durante sus operaciones.
+  - La tabla del cuestionario ordena por registro, estado y cada pregunta; el registro inicia de menor a mayor, incluyendo orden numérico para identificadores numéricos.
+  - Las opciones del cuestionario se presentan de menor a mayor usando comparación numérica natural.
+- ¿Por qué?
+  - Las cargas no indicaban visualmente que seguían en proceso, y la tabla y las opciones carecían del orden solicitado.
+- ¿Para qué?
+  - Hacer visibles los tiempos de espera y facilitar la inspección ordenada de respuestas y opciones.

@@ -50,3 +50,5 @@ next-env.d.ts
 
 certificates
 /.swc
+
+/logs/

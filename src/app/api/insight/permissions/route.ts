@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentSysadmin, userCatalogAccess } from "@/lib/insight-catalog";
 import { createManagedPermissions, deleteManagedPermission, listManagedPermissions, updateManagedPermission } from "@/lib/insight-permissions";
+import { logError } from "@/lib/server-log";
 
 async function authorized() { const id = await currentSysadmin(); return Boolean(id && (await userCatalogAccess(id, true)).has("insight_permissions")); }
 const forbidden = () => NextResponse.json({ error: "Acceso exclusivo de sysadmin." }, { status: 403 });
@@ -32,7 +33,7 @@ async function mutate(request: Request, method: "POST" | "PATCH" | "DELETE") {
     if (error instanceof Error && /^(Datos|Módulo|El módulo|Permiso|El permiso|Uno o varios)/.test(error.message)) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    console.error("Error en permisos Insight", error);
+    logError("Error en permisos Insight", error);
     return NextResponse.json({ error: "No se pudo guardar el permiso." }, { status: 500 });
   }
 }

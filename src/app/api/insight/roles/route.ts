@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentSysadmin, userCatalogAccess } from "@/lib/insight-catalog";
 import { deleteInsightRole, listRoleWorkspace, saveInsightRole } from "@/lib/insight-roles";
+import { logError } from "@/lib/server-log";
 
 const forbidden = () => NextResponse.json({ error: "Acceso exclusivo de sysadmin." }, { status: 403 });
 async function authorized() { const id = await currentSysadmin(); return Boolean(id && (await userCatalogAccess(id, true)).has("insight_roles")); }
@@ -20,7 +21,7 @@ async function mutate(request: Request, method: "POST" | "PATCH" | "DELETE") {
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo guardar el rol.";
     const known = /^(Datos|Campo|Organización|Rol|Nombre|Descripción|Permisos|No se|Uno o varios|Selecciona|El rol|La organización|Ya existe|Quita)/.test(message);
-    if (!known) console.error("Error en roles Insight", error);
+    if (!known) logError("Error en roles Insight", error);
     return NextResponse.json({ error: known ? message : "No se pudo guardar el rol." }, { status: known ? 400 : 500 });
   }
 }
