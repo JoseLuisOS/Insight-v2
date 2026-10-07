@@ -6,7 +6,7 @@ import { downloadCsv, downloadUrl, slugify } from "@/lib/export";
 import { formatNumber, PALETTE } from "@/lib/charts";
 import type { ChartV2Definition, ChartV2Point, ChartV2Result } from "@/lib/chart-v2";
 
-const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
+const ReactECharts = dynamic(() => import("@/components/insight-echarts"), { ssr: false });
 type Instance = { getDataURL: (options: Record<string, unknown>) => string };
 
 function option(definition: ChartV2Definition, result: ChartV2Result): Record<string, unknown> {

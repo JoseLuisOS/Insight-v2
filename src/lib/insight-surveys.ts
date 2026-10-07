@@ -2,6 +2,8 @@ import "server-only";
 import { notFound, redirect } from "next/navigation";
 import { insightDb } from "@/lib/insight-db";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/session-user";
+import { logDuration, startTiming } from "@/lib/server-log";
 import { isSysadmin, userCatalogAccess } from "@/lib/insight-catalog";
 
 export type SurveyOrganization = { id: string; name: string };
@@ -126,9 +128,9 @@ async function deleteSurveyVersionDataInBatches(client: SurveyDeleteClient, vers
 }
 
 async function surveyActor() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
+  const supabase = await createClient();
   const admin = await isSysadmin(user.id);
   if (!(await userCatalogAccess(user.id, admin)).has("encuestas")) notFound();
   return { supabase, userId: user.id, admin };
@@ -175,6 +177,44 @@ export async function canViewSurveyResource(actor: { userId: string; admin: bool
   return rows[0].access_mode === "organization" || rows.some((row) => row.effect === "allow");
 }
 
+async function visibleSurveyResources(actor: { userId: string; admin: boolean }, instruments: { id: string; organization_id: string }[]): Promise<boolean[]> {
+  if (actor.admin || !instruments.length) return instruments.map(() => true);
+  const rows = await queryRows<{ id: string; organization_id: string; access_mode: string; effect: string | null }>(`select r.domain_resource_id as id,
+    r.organization_id, r.access_mode, grant_effect.effect
+    from insight_iam.iam_resources r
+    left join lateral (
+      select rp.effect
+      from insight_iam.iam_resource_permissions rp
+      join insight_iam.iam_permissions p on p.id = rp.permission_id and p.code = 'survey.view'
+      where rp.resource_id = r.id and (
+        rp.membership_id in (select m.id from insight_iam.iam_organization_memberships m
+          where m.organization_id = r.organization_id and m.user_id = $3 and m.status = 'active')
+        or rp.role_id in (select mr.role_id from insight_iam.iam_membership_roles mr
+          join insight_iam.iam_organization_memberships m on m.id = mr.membership_id
+          where m.organization_id = r.organization_id and m.user_id = $3 and m.status = 'active')
+      )
+    ) grant_effect on true
+    where r.resource_type = 'survey' and r.domain_resource_id = any($1::uuid[])
+      and r.organization_id = any($2::uuid[])`, [
+    [...new Set(instruments.map((item) => item.id))],
+    [...new Set(instruments.map((item) => item.organization_id))],
+    actor.userId,
+  ]);
+  const visibility = new Map<string, { organization: boolean; allow: boolean; deny: boolean }>();
+  for (const row of rows) {
+    const key = `${row.organization_id}:${row.id}`;
+    const state = visibility.get(key) ?? { organization: false, allow: false, deny: false };
+    state.organization ||= row.access_mode === "organization";
+    state.allow ||= row.effect === "allow";
+    state.deny ||= row.effect === "deny";
+    visibility.set(key, state);
+  }
+  return instruments.map(({ id, organization_id }) => {
+    const state = visibility.get(`${organization_id}:${id}`);
+    return !state || (!state.deny && (state.organization || state.allow));
+  });
+}
+
 export async function listSurveyNameChoices(): Promise<SurveyNameChoice[]> {
   const actor = await surveyActor();
   const organizations = await allowedOrganizations(actor);
@@ -186,15 +226,23 @@ export async function listSurveyNameChoices(): Promise<SurveyNameChoice[]> {
     left join insight_survey.survey_instruments i on i.study_id = s.id and i.organization_id = s.organization_id
     where s.organization_id = any($1::uuid[])
     order by s.name, i.name`, [organizations.map((organization) => organization.id)]);
-  const visible = await Promise.all(rows.map((row) => row.instrument_id
-    ? canViewSurveyResource(actor, row.organization_id, row.instrument_id) : true));
+  const visibleInstruments = rows.filter((row) => row.instrument_id).map((row) => ({
+    id: row.instrument_id!, organization_id: row.organization_id,
+  }));
+  const visibleValues = await visibleSurveyResources(actor, visibleInstruments);
+  let visibleIndex = 0;
+  const visible = rows.map((row) => row.instrument_id ? visibleValues[visibleIndex++] : true);
   return rows.filter((_, index) => visible[index]);
 }
 
 export async function listSurveys(): Promise<{ organizations: SurveyOrganization[]; surveys: SurveySummary[]; deletableStudyIds: string[]; deletableInstrumentIds: string[]; versionsByInstrument: Record<string, SurveyVersion[]> }> {
+  const started = startTiming();
   const actor = await surveyActor();
   const organizations = await allowedOrganizations(actor);
-  if (!organizations.length) return { organizations, surveys: [], deletableStudyIds: [], deletableInstrumentIds: [], versionsByInstrument: {} };
+  if (!organizations.length) {
+    await logDuration("surveys.list", started, { organizations: 0, surveys: 0 });
+    return { organizations, surveys: [], deletableStudyIds: [], deletableInstrumentIds: [], versionsByInstrument: {} };
+  }
   const rows = await queryRows<SurveySummary>(`select i.id, s.organization_id,
     o.name as organization_name, s.id as study_id, s.code as study_code,
     s.name as study_name, s.description as study_description,
@@ -226,14 +274,14 @@ export async function listSurveys(): Promise<{ organizations: SurveyOrganization
       and not exists (select 1 from insight_survey.survey_import_jobs j
         where j.id::text = i.metadata->>'import_job_id' and j.status <> 'completed')
     order by o.name, s.name, i.name`, [organizations.map((org) => org.id)]);
-  const visibility = await Promise.all(rows.map((row) => canViewSurveyResource(actor, row.organization_id, row.id)));
+  const visibility = await visibleSurveyResources(actor, rows);
   const surveys = rows.filter((_, index) => visibility[index]);
   const studyIds = [...new Set(surveys.map((survey) => survey.study_id))];
   const instruments = studyIds.length ? await queryRows<{ id: string; study_id: string; organization_id: string }>(
     `select id, study_id, organization_id from insight_survey.survey_instruments where study_id = any($1::uuid[])`, [studyIds],
   ) : [];
   const [instrumentVisibility, deletePermissions] = await Promise.all([
-    Promise.all(instruments.map((instrument) => canViewSurveyResource(actor, instrument.organization_id, instrument.id))),
+    visibleSurveyResources(actor, instruments),
     Promise.all(organizations.map(async (org) => {
       if (actor.admin) return true;
       const { data, error } = await actor.supabase.rpc("iam_has_permission", { p_org: org.id, p_code: "survey.delete" });
@@ -257,6 +305,7 @@ export async function listSurveys(): Promise<{ organizations: SurveyOrganization
     const { instrument_id, ...data } = version;
     (versionsByInstrument[instrument_id] ??= []).push(data);
   }
+  await logDuration("surveys.list", started, { organizations: organizations.length, surveys: surveys.length });
   return { organizations, surveys, deletableStudyIds, deletableInstrumentIds, versionsByInstrument };
 }
 

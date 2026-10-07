@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { insightDb } from "@/lib/insight-db";
 import { chartOrganizations } from "@/lib/chart-v2-datasets";
+import { getSessionUser } from "@/lib/session-user";
 
 type ChartRow = {
   id: string;
@@ -21,7 +22,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default async function ChartsPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   const organizations = user ? await chartOrganizations() : [];
   const newCharts: { id: string; name: string; type: string; source_name: string; source_kind: "survey" | "dataset" }[] = user ? (await insightDb().query(
     `select c.id, c.name, c.source_kind,

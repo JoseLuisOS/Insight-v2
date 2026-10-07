@@ -1,19 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { insightDb } from "@/lib/insight-db";
 import { surveyChartContext, analyzeSurveyChart } from "@/lib/insight-charts";
 import { validateChartV2, type ChartV2Definition } from "@/lib/chart-v2";
 import { SurveyChartStudio } from "@/components/survey-chart-studio";
 import { SurveyChartPublication } from "@/components/survey-chart-publication";
 import { ChartV2Annotations } from "@/components/chart-v2-annotations";
+import { getSessionUser } from "@/lib/session-user";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export default async function SurveyChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!UUID.test(id)) notFound();
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) notFound();
   const chart = await insightDb().query(
     `select id, name, organization_id, definition_json from insight_core.core_charts where id = $1 and created_by = $2 and source_kind = 'survey'`, [id, user.id]);

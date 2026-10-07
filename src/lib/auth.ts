@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { cache } from "react";
+import { getSessionUser } from "@/lib/session-user";
 
 export type Tenant = {
   id: string;
@@ -17,11 +19,9 @@ export type Profile = {
 };
 
 /** Loads the authenticated user and their profile (with tenant), if any. */
-export async function getProfileContext() {
+export const getProfileContext = cache(async () => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
 
   if (!user) return { user: null, profile: null as Profile | null };
 
@@ -32,4 +32,4 @@ export async function getProfileContext() {
     .maybeSingle();
 
   return { user, profile: (profile as Profile | null) ?? null };
-}
+});

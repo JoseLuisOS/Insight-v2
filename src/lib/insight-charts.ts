@@ -1,10 +1,12 @@
 import "server-only";
 import { notFound } from "next/navigation";
-import { insightDb } from "@/lib/insight-db";
+import { insightQuery } from "@/lib/insight-db";
 import { canViewSurveyResource } from "@/lib/insight-surveys";
 import type { ChartV2Definition, ChartV2Metric, ChartV2Result, ChartV2Variable } from "@/lib/chart-v2";
 import { CHART_V2_CATALOG } from "@/lib/chart-v2";
 import { chartActor, chartOrganizations } from "@/lib/chart-v2-datasets";
+import { cache } from "react";
+import { logDuration } from "@/lib/server-log";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 type Answer = { labels: string[]; numeric: number | null; missing: boolean; warning: boolean };
@@ -16,10 +18,11 @@ type Raw = {
   quality_status: string | null; selection_labels: string[] | null;
 };
 
-export async function surveyChartContext(instrumentId: string, versionId?: string) {
+export const surveyChartContext = cache(async (instrumentId: string, versionId?: string) => {
+  const started = performance.now();
   if (!UUID.test(instrumentId) || (versionId && !UUID.test(versionId))) notFound();
   const actor = await chartActor();
-  const source = await insightDb().query(`select i.id, i.name, i.organization_id
+  const source = await insightQuery("charts.survey_source", `select i.id, i.name, i.organization_id
     from insight_survey.survey_instruments i
     join insight_core.core_organizations o on o.id = i.organization_id and o.status = 'active'
     where i.id = $1 and not exists (
@@ -35,7 +38,7 @@ export async function surveyChartContext(instrumentId: string, versionId?: strin
     ]);
     if (access.error || access.data !== true || view.error || view.data !== true || !resource) notFound();
   }
-  const versionRows = await insightDb().query(`select id, version, name, status
+  const versionRows = await insightQuery("charts.survey_versions", `select id, version, name, status
     from insight_survey.survey_instrument_versions
     where instrument_id = $1 and organization_id = $2
     order by created_at desc, id desc`, [instrumentId, survey.organization_id]);
@@ -43,7 +46,7 @@ export async function surveyChartContext(instrumentId: string, versionId?: strin
   const version = versionId ? versions.find((candidate) => candidate.id === versionId) : versions[0];
   if (!version) notFound();
   const detail = { survey: { ...survey, version: version.version }, versions };
-  const query = await insightDb().query(`select v.id, v.code, v.label, v.data_type as "dataType", q.text as question,
+  const query = await insightQuery("charts.survey_variables", `select v.id, v.code, v.label, v.data_type as "dataType", q.text as question,
       (lower(v.data_type) in ('integer','decimal','number','numeric','float','double','real')
         or v.measurement_level in ('interval','ratio')) as numeric,
       coalesce((select array_agg(ao.label order by ao.position, ao.code)
@@ -53,8 +56,9 @@ export async function surveyChartContext(instrumentId: string, versionId?: strin
     join insight_survey.survey_questions q on q.id = v.question_id and q.organization_id = v.organization_id
     where q.instrument_version_id = $1 and q.organization_id = $2 and v.is_analysis_variable
     order by q.position, v.code`, [version.id, detail.survey.organization_id]);
+  await logDuration("charts.survey_context", started, { variables: query.rows.length });
   return { detail, version, variables: query.rows as ChartV2Variable[] };
-}
+});
 
 function quantile(values: { value: number; weight: number }[], fraction: number, weighted: boolean): number {
   const sorted = values.filter((x) => x.weight > 0).sort((a, b) => a.value - b.value);
@@ -90,6 +94,18 @@ export async function analyzeSurveyChart(
   definition: ChartV2Definition,
   dashboardFilter?: { variableId: string; value: string },
 ): Promise<ChartV2Result> {
+  const started = performance.now();
+  try {
+    return await computeSurveyChart(definition, dashboardFilter);
+  } finally {
+    await logDuration("charts.survey_analysis", started);
+  }
+}
+
+async function computeSurveyChart(
+  definition: ChartV2Definition,
+  dashboardFilter?: { variableId: string; value: string },
+): Promise<ChartV2Result> {
   if (definition?.version !== 2 || definition.source?.kind !== "survey" ||
       !CHART_V2_CATALOG.some((item) => item.type === definition.type) ||
       !["count","percent","sum","avg","median","min","max"].includes(definition.metric) ||
@@ -115,7 +131,8 @@ export async function analyzeSurveyChart(
         type !== "histogram" && type !== "boxplot" && type !== "scatter" && !yVariable?.numeric)) {
     throw new Error("Selecciona variables numéricas para este análisis.");
   }
-  const result = await insightDb().query(`select o.id as observation_id, o.status, o.weight,
+  const rowsStarted = performance.now();
+  const result = await insightQuery("charts.survey_rows", `select o.id as observation_id, o.status, o.weight,
       r.variable_id, coalesce(ao.label, r.value_text, r.raw_value) as label,
       coalesce(r.value_decimal, r.value_integer)::text as numeric_value,
       r.is_missing, ao.is_missing as option_missing, r.quality_status,
@@ -137,6 +154,7 @@ export async function analyzeSurveyChart(
     ) sel on true
     where o.instrument_version_id = $1 and o.organization_id = $2
     order by o.id`, [version.id, detail.survey.organization_id, [...new Set(ids)]]);
+  await logDuration("charts.survey_rows", rowsStarted, { rows: result.rows.length, variables: new Set(ids).size });
 
   const observations = new Map<string, Observation>();
   for (const row of result.rows as Raw[]) {

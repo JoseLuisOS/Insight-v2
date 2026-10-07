@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { NameAvatarForm } from "./name-avatar-form";
 import { PasswordForm } from "./password-form";
+import { getSessionUser } from "@/lib/session-user";
 
 export default async function ProfilePage({
   searchParams,
@@ -11,9 +12,7 @@ export default async function ProfilePage({
   const { success, error } = await searchParams;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
   // No generated Supabase types in this project yet (see docs/ARQUITECTURA.md) —

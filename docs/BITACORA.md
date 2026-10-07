@@ -895,3 +895,41 @@ Registro de cambios del producto y de su documentación operativa. Se conserva c
   - La expresión regular omitía un bloque de cuatro caracteres y enviaba identificadores válidos a la página 404. En la depuración, Turbopack generó una caché excesiva y el pooler remoto agotó el tiempo de conexión, aunque la URL directa respondió.
 - **¿Para qué?**
   - Permitir abrir y guardar gráficas con IDs reales y distinguir los errores de acceso o conexión de un recurso inexistente.
+
+## 2026-10-07 — Trazabilidad y carga de navegación
+
+- **¿Qué?**
+  - Se añadieron tiempos de las etapas del shell, autorización de gráficas y lectura de respuestas, además de errores de petición capturados por Next.js y la duración de autenticación en el proxy.
+  - Se compartieron identidad, permisos, organizaciones y fuentes repetidas dentro de cada render; el permiso por organización se obtiene en una sola consulta y el pool SQL mantiene conexiones inactivas 60 segundos, con máximo configurable.
+  - El comando `npm run dev` usa Webpack, igual que el servidor HTTPS local, ante los antecedentes de caché y compilación Turbopack atascadas.
+- **¿Por qué?**
+  - La navegación y los dashboards repetían verificaciones de sesión y consultas. Los logs locales también mostraron demoras de 1–3 segundos en el shell y errores de timeout de conexión; el cierre tras 10 segundos de inactividad favorecía reconexiones frecuentes.
+- **¿Para qué?**
+  - Ubicar la etapa concreta de cada demora y reducir esperas al abrir módulos o dashboards con varias gráficas.
+
+## 2026-10-07 — Diagnóstico de lentitud persistente
+
+- **¿Qué?**
+  - El proxy y el servidor validan la identidad con claims JWT; el shell dejó de consultar tablas heredadas inexistentes y carga sus fuentes independientes en paralelo.
+  - Los logs relacionan proxy, shell y consultas por `request_id`, separan espera de conexión y ejecución SQL y miden transiciones del navegador. ECharts usa una entrada compartida con solo los módulos de visualización necesarios.
+- **¿Por qué?**
+  - Las consultas del catálogo tardaron 50–100 ms, pero abrir conexiones tardó 0.3–1.4 s y hubo timeouts. La compilación inicial de Gráficas en desarrollo también tardó decenas de segundos; el paquete completo de ECharts ocupaba un chunk de 1.12 MB. Se verificó que `public.profiles` y `public.tenants` no existen en la base aplicada.
+- **¿Para qué?**
+  - Evitar trabajo remoto innecesario en cada navegación, reducir el JavaScript de las gráficas y distinguir con precisión compilación, autenticación, conexión SQL, consulta y render.
+
+## 2026-10-07 — Compilación y cambio de módulos
+
+- **¿Qué?**
+  - El listado de Encuestas ahora carga acceso y progreso desde un módulo ligero, separado del parser XLSX de importaciones.
+  - Comparte los claims del render con el shell y resuelve la visibilidad de instrumentos del listado con consultas por conjunto; registra la duración total del listado y de las cargas pendientes.
+  - Usuarios y Perfil reutilizan también la identidad verificada del shell en vez de repetir `getUser` al abrir la página.
+  - El proxy limita cada petición remota de Auth a cinco segundos y la validación completa a siete; devuelve un error temporal con identificador de petición si la red impide validar la sesión.
+  - El servidor de desarrollo conserva hasta ocho rutas compiladas por 10 minutos y el pool SQL de desarrollo admite cuatro conexiones simultáneas.
+  - Los nombres de icono personalizados del catálogo se cargan en un componente separado, mientras que los iconos habituales del panel siguen en el registro estático.
+- **¿Por qué?**
+  - Una navegación a Encuestas tardó 28,8 segundos durante la primera compilación; su bundle de servidor incluía `xlsx` aunque solo mostrara el listado. Otra navegación esperó 24,5 segundos en Auth tras varios fallos de red.
+  - El listado repetía llamadas de identidad y una consulta de visibilidad por instrumento, además de volver a consultar los instrumentos para calcular el permiso de eliminación.
+  - Next descartaba rutas de desarrollo a los 60 segundos y solo retenía cinco; el pool de dos conexiones acumuló esperas superiores a dos segundos durante un render de Encuestas.
+  - Tras separar el parser, el bundle de servidor de `/surveys` ya no referencia `xlsx` ni `survey-file.js`; una navegación posterior a la ruta compilada marcó 2,35 segundos. La primera compilación de `/team` todavía marcó 31,98 segundos en la misma sesión de desarrollo.
+- **¿Para qué?**
+  - Reducir el trabajo de compilación y los viajes de red al cambiar de módulos, sin perder trazabilidad ni invalidar la sesión por una interrupción temporal de Auth.

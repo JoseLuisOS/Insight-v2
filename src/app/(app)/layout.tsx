@@ -14,12 +14,14 @@ import {
   SIDEBAR_GROUPS_KEY,
   SIDEBAR_RAIL_KEY,
 } from "@/components/navigation/sidebar";
-import { getProfileContext } from "@/lib/auth";
 import { isSysadmin, listCatalog, userCatalogAccess } from "@/lib/insight-catalog";
 import { NAV } from "@/lib/nav";
 import { createClient } from "@/lib/supabase/server";
 import { getViewedUser } from "@/lib/view-as";
 import { ViewAsBanner } from "@/components/insight/view-as-banner";
+import { logDuration, startTiming } from "@/lib/server-log";
+import { NavigationPerformance } from "@/components/navigation/navigation-performance";
+import { getSessionUser } from "@/lib/session-user";
 
 function parseCollapsed(raw: string | undefined): Record<string, boolean> {
   if (!raw) return {};
@@ -36,14 +38,28 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, profile } = await getProfileContext();
+  const started = startTiming();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
-  const admin = await isSysadmin(user.id);
-  const viewedUser = admin ? await getViewedUser(user.id) : null;
-  const [access, catalog] = await Promise.all([userCatalogAccess(user.id, admin), listCatalog()]);
+  await logDuration("shell.identity", started);
+  const accessStarted = startTiming();
+  const supabase = await createClient();
+  const profileStarted = startTiming();
+  const [admin, catalog, profileResult] = await Promise.all([
+    isSysadmin(user.id),
+    listCatalog(),
+    supabase.rpc("get_my_profile").maybeSingle(),
+  ]);
+  await logDuration("shell.user_profile", profileStarted);
+  const [actorAccess, viewedUser] = await Promise.all([
+    userCatalogAccess(user.id, admin),
+    admin ? getViewedUser(user.id) : Promise.resolve(null),
+  ]);
+  const access = new Set(actorAccess);
   if (viewedUser) {
     for (const code of await userCatalogAccess(viewedUser.userId, false)) access.add(code);
   }
+  await logDuration("shell.access_catalog", accessStarted);
   const registeredItems = NAV.flatMap((group) => group.items);
   const catalogNav = catalog.groups.map((group) => {
     const fallback = NAV.find((item) => item.code === group.code);
@@ -65,30 +81,28 @@ export default async function AppLayout({
   // Insight is the sysadmin control plane, outside the managed catalog.
   const nav = admin ? [...catalogNav, NAV.find((group) => group.code === "insight")!] : catalogNav;
 
-  const supabase = await createClient();
-
   // Name/avatar live in insight_core.core_user_profiles (scripts/008).
-  const { data: myProfile } = (await supabase
-    .rpc("get_my_profile")
-    .maybeSingle()) as {
+  const { data: myProfile } = profileResult as {
     data: { display_name: string | null; avatar_url: string | null } | null;
   };
 
   const shellUser: ShellUser = {
-    name: myProfile?.display_name || profile?.display_name || user.email || null,
+    name: myProfile?.display_name || user.email || null,
     avatarUrl: myProfile?.avatar_url ?? null,
-    orgName: profile?.tenants?.name ?? null,
+    orgName: null,
   };
 
   // Sidebar state is persisted in cookies so the first paint already matches.
   const cookieStore = await cookies();
   const initialRail = cookieStore.get(SIDEBAR_RAIL_KEY)?.value === "true";
   const initialCollapsed = parseCollapsed(cookieStore.get(SIDEBAR_GROUPS_KEY)?.value);
+  await logDuration("shell.total", started);
 
   return (
     <MobileNavProvider>
       <PanelHeaderProvider>
         <div className="insight-app-shell flex h-dvh overflow-hidden bg-background">
+          <NavigationPerformance />
           <Sidebar
             nav={nav}
             user={shellUser}

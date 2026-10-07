@@ -1,38 +1,38 @@
 import "server-only";
-import { insightDb } from "@/lib/insight-db";
-import { createClient } from "@/lib/supabase/server";
+import { insightDb, insightQuery } from "@/lib/insight-db";
 import { redirect } from "next/navigation";
 import { catalogCodeFromName } from "@/lib/catalog-code";
+import { cache } from "react";
+import { getSessionUser } from "@/lib/session-user";
 
 export type State = "apagado" | "desarrollo" | "disponible";
 export type CatalogGroup = { code: string; name: string; description: string | null; icon: string | null; sort_order: number; active: boolean; visible: boolean; state: State };
 export type CatalogModule = CatalogGroup & { group_code: string };
 
-export async function isSysadmin(userId: string): Promise<boolean> {
-  const { rows } = await insightDb().query(
+export const isSysadmin = cache(async (userId: string): Promise<boolean> => {
+  const { rows } = await insightQuery("iam.sysadmin",
     "select 1 from insight_iam.iam_platform_admins where user_id = $1 and role = 'sysadmin' limit 1",
     [userId],
   );
   return rows.length > 0;
-}
+});
 
 export async function currentSysadmin(): Promise<string | null> {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return null;
+  const user = await getSessionUser();
+  if (!user) return null;
   return (await isSysadmin(user.id)) ? user.id : null;
 }
 
-export async function listCatalog(): Promise<{ groups: CatalogGroup[]; modules: CatalogModule[] }> {
+export const listCatalog = cache(async (): Promise<{ groups: CatalogGroup[]; modules: CatalogModule[] }> => {
   const [groups, modules] = await Promise.all([
-    insightDb().query("select code,name,description,icon,sort_order,active,visible,state from insight_core.app_groups order by sort_order,name"),
-    insightDb().query("select code,group_code,name,description,icon,sort_order,active,visible,state from insight_core.app_modules order by group_code,sort_order,name"),
+    insightQuery("catalog.groups", "select code,name,description,icon,sort_order,active,visible,state from insight_core.app_groups order by sort_order,name"),
+    insightQuery("catalog.modules", "select code,group_code,name,description,icon,sort_order,active,visible,state from insight_core.app_modules order by group_code,sort_order,name"),
   ]);
   return { groups: groups.rows, modules: modules.rows };
-}
+});
 
-export async function userCatalogAccess(userId: string, admin: boolean): Promise<Set<string>> {
-  const { rows } = await insightDb().query(`
+export const userCatalogAccess = cache(async (userId: string, admin: boolean): Promise<Set<string>> => {
+  const { rows } = await insightQuery("catalog.access", `
     select m.code, m.state as module_state, g.state as group_state,
       exists (
         select 1
@@ -60,11 +60,10 @@ export async function userCatalogAccess(userId: string, admin: boolean): Promise
     }
   }
   return access;
-}
+});
 
 export async function requireCatalogAccess(code: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
   const access = await userCatalogAccess(user.id, await isSysadmin(user.id));
   if (!access.has(code)) redirect("/profile");

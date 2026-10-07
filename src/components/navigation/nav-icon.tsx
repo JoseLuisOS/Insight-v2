@@ -1,5 +1,8 @@
+"use client";
+
 // Shared resolver for navigation and catalog icons. Common choices use the
-// curated registry; user-validated custom Lucide names load through DynamicIcon.
+// curated registry; user-validated custom Lucide names load separately.
+import dynamic from "next/dynamic";
 import {
   Activity,
   BookOpen,
@@ -47,8 +50,8 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { DynamicIcon, type IconName } from "lucide-react/dynamic";
-import { normalizeLucideIconName } from "@/lib/catalog-code";
+
+const DynamicNavIcon = dynamic(() => import("./dynamic-nav-icon").then((module) => module.DynamicNavIcon), { ssr: false });
 
 export const NAV_ICONS: Record<string, LucideIcon> = {
   Activity,
@@ -100,6 +103,6 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
 export function NavIcon({ name, className }: { name?: string; className?: string }) {
   const Cmp = name ? NAV_ICONS[name] : undefined;
   if (Cmp) return <Cmp className={className} size={18} strokeWidth={1.8} />;
-  if (name) return <DynamicIcon name={normalizeLucideIconName(name) as IconName} className={className} size={18} strokeWidth={1.8} fallback={() => <span className={`inline-block h-4 w-4 ${className ?? ""}`} />} />;
+  if (name) return <DynamicNavIcon name={name} className={className} />;
   return <span className={`inline-block h-4 w-4 ${className ?? ""}`} />;
 }

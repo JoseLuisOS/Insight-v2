@@ -3,6 +3,7 @@ import { isSysadmin } from "@/lib/insight-catalog";
 import { listUserOrganizations, memberRoleIds, type ManagedUser } from "@/lib/insight-users";
 import { UsersManager } from "@/components/insight/users-manager";
 import { getViewedUser } from "@/lib/view-as";
+import { getSessionUser } from "@/lib/session-user";
 
 type Role = { id: string; code: string; name: string };
 type MemberRpc = Omit<ManagedUser, "role_ids">;
@@ -10,7 +11,7 @@ type MemberRpc = Omit<ManagedUser, "role_ids">;
 export default async function TeamPage({ searchParams }: { searchParams: Promise<{ org?: string }> }) {
   const { org } = await searchParams;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return null;
   const organizations = await listUserOrganizations(user.id);
   if (!organizations.length) return <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-card p-6"><h1 className="text-2xl font-semibold text-foreground">Usuarios</h1><p className="mt-2 text-sm text-muted-foreground">No tienes permiso para administrar usuarios en una organización.</p></div>;

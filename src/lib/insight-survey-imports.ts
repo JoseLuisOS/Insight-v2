@@ -1,9 +1,8 @@
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { insightDb } from "@/lib/insight-db";
-import { isSysadmin, userCatalogAccess } from "@/lib/insight-catalog";
+import { importActor, createOrganizations } from "@/lib/survey-import-access";
 import { surveyCode } from "@/lib/survey-codes";
 import { listSurveyNameChoices } from "@/lib/insight-surveys";
 import { logError } from "@/lib/server-log";
@@ -43,36 +42,6 @@ export class DuplicateSurveyVersionError extends Error {
   }
 }
 
-async function importActor() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Inicia sesión para importar encuestas.");
-  const admin = await isSysadmin(user.id);
-  if (!(await userCatalogAccess(user.id, admin)).has("encuestas")) throw new Error("No tienes acceso a Encuestas.");
-  return { supabase, userId: user.id, admin };
-}
-
-async function createOrganizations(actor: Awaited<ReturnType<typeof importActor>>): Promise<SurveyImportOrganization[]> {
-  const result = await insightDb().query(`select o.id, o.name, o.code_prefix,
-    (coalesce(seq.study_last, 0) + 1)::int as next_study_number,
-    (coalesce(seq.instrument_last, 0) + 1)::int as next_instrument_number
-    from insight_core.core_organizations o
-    left join insight_survey.survey_code_sequences seq on seq.organization_id = o.id
-    where o.status = 'active' and ($2::boolean or exists (
-      select 1 from insight_iam.iam_organization_memberships m
-      where m.organization_id = o.id and m.user_id = $1 and m.status = 'active'
-    )) order by o.name`, [actor.userId, actor.admin]);
-  if (actor.admin) return result.rows;
-  const checks = await Promise.all(result.rows.map(async (org: SurveyImportOrganization) => {
-    const [access, create] = await Promise.all([
-      actor.supabase.rpc("iam_has_permission", { p_org: org.id, p_code: "survey.access" }),
-      actor.supabase.rpc("iam_has_permission", { p_org: org.id, p_code: "survey.create" }),
-    ]);
-    return !access.error && access.data === true && !create.error && create.data === true;
-  }));
-  return result.rows.filter((_: SurveyImportOrganization, index: number) => checks[index]);
-}
-
 async function authorizedOrganization(organizationId: string) {
   const actor = await importActor();
   const organizations = await createOrganizations(actor);
@@ -107,20 +76,6 @@ export async function getSurveyImportWorkspace() {
     }
   }
   return { organizations, jobs, choices };
-}
-
-export async function listUnfinishedSurveyImports(): Promise<SurveyImportProgress[]> {
-  const actor = await importActor();
-  const organizations = await createOrganizations(actor);
-  if (!organizations.length) return [];
-  const result = await insightDb().query(`select j.id, j.organization_id, o.name as organization_name,
-    j.study_name, j.study_code, j.instrument_name, j.instrument_code, j.version,
-    j.source_filename, j.status, j.error_message, j.workflow_run_id
-    from insight_survey.survey_import_jobs j
-    join insight_core.core_organizations o on o.id = j.organization_id
-    where j.organization_id = any($1::uuid[]) and j.status <> 'completed'
-    order by j.created_at desc`, [organizations.map((org) => org.id)]);
-  return result.rows as SurveyImportProgress[];
 }
 
 export async function listSurveyImportStatuses(ids: string[]): Promise<{ id: string; status: string }[]> {

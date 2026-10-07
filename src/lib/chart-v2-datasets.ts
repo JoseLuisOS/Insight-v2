@@ -1,38 +1,50 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { insightDb } from "@/lib/insight-db";
+import { insightDb, insightQuery } from "@/lib/insight-db";
 import { isSysadmin, requireCatalogAccess } from "@/lib/insight-catalog";
 import type { Row } from "@/lib/charts";
+import { cache } from "react";
+import { logDuration } from "@/lib/server-log";
+import { getSessionUser } from "@/lib/session-user";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export type ChartOrganization = { id: string; name: string };
 export type CoreDataset = { id: string; organization_id: string; name: string; columns: string[]; rows: Row[]; row_count: number };
 
-export async function chartActor() {
+export const chartActor = cache(async () => {
+  const started = performance.now();
   await requireCatalogAccess("graficas");
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) notFound();
-  return { supabase, userId: user.id, admin: await isSysadmin(user.id) };
-}
+  const actor = { supabase, userId: user.id, admin: await isSysadmin(user.id) };
+  await logDuration("charts.actor", started);
+  return actor;
+});
 
-export async function chartOrganizations(): Promise<ChartOrganization[]> {
+export const chartOrganizations = cache(async (): Promise<ChartOrganization[]> => {
   const actor = await chartActor();
-  const query = await insightDb().query(`select o.id, o.name from insight_core.core_organizations o
+  const started = performance.now();
+  const query = await insightQuery("charts.organizations", `select o.id, o.name from insight_core.core_organizations o
     where o.status = 'active' and ($2::boolean or exists (
       select 1 from insight_iam.iam_organization_memberships m
-      where m.organization_id = o.id and m.user_id = $1 and m.status = 'active'))
+      join insight_iam.iam_permissions p on p.code = 'graficas.operar'
+      left join insight_iam.iam_user_permission_overrides upo
+        on upo.membership_id = m.id and upo.permission_id = p.id
+      where m.organization_id = o.id and m.user_id = $1 and m.status = 'active'
+        and (upo.effect = 'allow' or (upo.effect is null and exists (
+          select 1 from insight_iam.iam_membership_roles mr
+          join insight_iam.iam_role_permissions rp
+            on rp.role_id = mr.role_id and rp.permission_id = p.id
+          where mr.membership_id = m.id
+        )))))
     order by o.name`, [actor.userId, actor.admin]);
-  if (actor.admin) return query.rows as ChartOrganization[];
-  const allowed = await Promise.all((query.rows as ChartOrganization[]).map(async (organization) => {
-    const permission = await actor.supabase.rpc("iam_has_permission", { p_org: organization.id, p_code: "graficas.operar" });
-    return !permission.error && permission.data === true;
-  }));
-  return (query.rows as ChartOrganization[]).filter((_, index) => allowed[index]);
-}
+  await logDuration("charts.organizations", started, { count: query.rows.length });
+  return query.rows as ChartOrganization[];
+});
 
-export async function getCoreDataset(datasetId: string, limit = 5000): Promise<CoreDataset> {
+export const getCoreDataset = cache(async (datasetId: string, limit = 5000): Promise<CoreDataset> => {
   if (!UUID.test(datasetId)) notFound();
   const actor = await chartActor();
   const rows = await insightDb().query(`select id, organization_id, name, columns_json, row_count
@@ -43,7 +55,7 @@ export async function getCoreDataset(datasetId: string, limit = 5000): Promise<C
     where dataset_id = $1 and organization_id = $2 order by row_number limit $3`, [dataset.id, dataset.organization_id, limit]);
   return { id: dataset.id, organization_id: dataset.organization_id, name: dataset.name,
     columns: dataset.columns_json, rows: (data.rows as { values_json: Row }[]).map((row) => row.values_json), row_count: dataset.row_count };
-}
+});
 
 export async function listCoreDatasets() {
   const actor = await chartActor();

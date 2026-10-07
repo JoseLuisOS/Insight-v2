@@ -12,7 +12,7 @@ import {
 } from "@/lib/charts";
 import { downloadCsv, downloadUrl, slugify } from "@/lib/export";
 
-const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
+const ReactECharts = dynamic(() => import("@/components/insight-echarts"), { ssr: false });
 
 type EChartsInstance = { getDataURL: (opts: Record<string, unknown>) => string };
 
@@ -45,9 +45,9 @@ export function ChartRenderer({
   useEffect(() => {
     if (config.type !== "map" || !geo) return;
     let active = true;
-    import("echarts").then((echarts) => {
+    import("@/components/insight-echarts").then(({ registerInsightMap }) => {
       if (!active) return;
-      echarts.registerMap(geo.name, geo.geojson as never);
+      registerInsightMap(geo.name, geo.geojson);
       setMapReady(geo.name);
     });
     return () => {
