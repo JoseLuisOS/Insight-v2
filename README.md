@@ -8,18 +8,20 @@ Aplicación para crear, explorar y publicar visualizaciones y dashboards. El mod
 
 | Documento | Uso |
 |---|---|
+| [docs/README.md](docs/README.md) | Índice de documentación vigente, operativa e histórica. |
 | [docs/MAPA_MODULOS.md](docs/MAPA_MODULOS.md) | Índice del código actual, rutas, módulos y dependencias inmediatas. |
 | [docs/BITACORA.md](docs/BITACORA.md) | Registro de cambios y motivación de la evolución v2. |
 | [docs/GUIA_MIGRACION_V1_A_V2.md](docs/GUIA_MIGRACION_V1_A_V2.md) | Procedimiento enfocado para adaptar módulos v1 al modelo organizacional. |
-| [ARQUITECTURA_BBDD.md](ARQUITECTURA_BBDD.md) | Modelo objetivo multi-organización e IAM, designado por el usuario. |
+| [docs/ARQUITECTURA_BBDD.md](docs/ARQUITECTURA_BBDD.md) | Modelo objetivo multi-organización, IAM y estado aplicado de la base. |
+| [docs/CONTEXTO_PRODUCTO.md](docs/CONTEXTO_PRODUCTO.md) | Intención del producto y límites entre decisiones vigentes e ideas históricas. |
 | [AGENTS.md](AGENTS.md) | Reglas de trabajo eficientes y consulta de documentación local de Next.js. |
 | [.claude/skills/insight-v2/SKILL.md](.claude/skills/insight-v2/SKILL.md) | Contexto operativo para trabajar en este proyecto. |
 
-Los demás Markdown del repositorio están pendientes de revisión y no se consideran contratos vigentes. Algunos conservan decisiones anteriores de producto, arquitectura, seguridad o infraestructura.
+El [índice de `docs/`](docs/README.md) clasifica los documentos históricos para evitar que se usen como contrato vigente.
 
 ## Estado de versiones
 
-El código de aplicación documentado se considera v1, excepto el módulo Perfil, que el usuario identificó como v2. Consulta [docs/MAPA_MODULOS.md](docs/MAPA_MODULOS.md) para ver rutas y archivos. La etiqueta v2 no implica que el módulo ya use `organization_id` o esté completamente integrado con memberships; eso se verifica por separado.
+La aplicación combina módulos v1 y v2. Encuestas, Usuarios, Roles, Permisos y las herramientas de administración Insight ya tienen flujos v2; Gráficas, Datasets y Dashboards conservan contratos v1. Consulta [docs/MAPA_MODULOS.md](docs/MAPA_MODULOS.md) para el estado de cada ruta y confirma el comportamiento en código.
 
 ## Stack declarado
 

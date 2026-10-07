@@ -12,46 +12,18 @@ export default async function NewChartPage({
   const supabase = await createClient();
 
   if (!dataset) {
-    const { data } = await supabase
-      .from("datasets")
-      .select("id, name, row_count, kind")
-      .order("created_at", { ascending: false });
-    const datasets = data ?? [];
-
     return (
       <div className="mx-auto max-w-3xl">
         <h1 className="text-2xl font-semibold text-foreground">Nueva gráfica</h1>
-        <p className="mt-1 text-muted-foreground">Elige un dataset para empezar.</p>
-        {datasets.length === 0 ? (
-          <div className="mt-6 rounded-xl border border-dashed border-border bg-muted/40 p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              Primero necesitas un dataset.
-            </p>
-            <Link
-              href="/datasets/new"
-              className="mt-3 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-            >
-              Crear dataset
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {datasets.map((d) => (
-              <Link
-                key={d.id}
-                href={`/charts/new?dataset=${d.id}`}
-                className="rounded-xl border border-border bg-card p-4 transition hover:border-primary"
-              >
-                <div className="font-medium text-card-foreground">{d.name}</div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  {d.kind === "sql_query"
-                    ? "Consulta SQL"
-                    : `${(d.row_count ?? 0).toLocaleString("es-MX")} filas`}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <p className="mt-1 text-muted-foreground">Elige la fuente de datos para empezar.</p>
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Link href="/charts/survey/new" className="rounded-xl border border-border bg-card p-5 transition hover:border-primary">
+            <div className="font-medium text-card-foreground">Encuestas</div><div className="mt-1 text-sm text-muted-foreground">Analiza preguntas, cruces, distribuciones y estadística por versión.</div>
+          </Link>
+          <Link href="/charts/dataset/new" className="rounded-xl border border-border bg-card p-5 transition hover:border-primary">
+            <div className="font-medium text-card-foreground">Datasets</div><div className="mt-1 text-sm text-muted-foreground">Crea gráficas con datos tabulares nuevos o ya cargados.</div>
+          </Link>
+        </div>
       </div>
     );
   }

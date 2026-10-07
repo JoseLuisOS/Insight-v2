@@ -747,3 +747,151 @@ Registro de cambios del producto y de su documentación operativa. Se conserva c
   - Las cargas no indicaban visualmente que seguían en proceso, y la tabla y las opciones carecían del orden solicitado.
 - ¿Para qué?
   - Hacer visibles los tiempos de espera y facilitar la inspección ordenada de respuestas y opciones.
+
+## 2026-10-06 — Mapa de datos de Encuestas para Gráficas v2
+
+- **¿Qué?**
+  - Se documentaron las entidades, relaciones y granularidades de `insight_survey`, con enlaces desde la arquitectura y el mapa de módulos.
+- **¿Por qué?**
+  - El apartado conceptual de la arquitectura conserva nombres anteriores y no explicaba cómo cruzar variables, observaciones y selecciones.
+- **¿Para qué?**
+  - Diseñar las fuentes y agregaciones de Gráficas v2 sobre el modelo implementado sin volver a reconstruirlo desde archivos dispersos.
+
+## 2026-10-06 — Organización documental previa a Gráficas v2
+
+- **¿Qué?**
+  - Se consolidó la arquitectura de base en `docs/`, se ordenaron los documentos de raíz y se prepararon un índice, un contexto de producto y una entrevista para Gráficas v2.
+- **¿Por qué?**
+  - Había una copia antigua de la arquitectura, enlaces a la raíz y documentos v1 mezclados con referencias vigentes.
+- **¿Para qué?**
+  - Empezar el diseño de Gráficas con fuentes claras y decisiones estadísticas explícitas.
+
+## 2026-10-06 — Índice documental por tarea
+
+- **¿Qué?**
+  - El índice de `docs/` indica qué documento abrir según el trabajo y enlaza las referencias opcionales.
+- **¿Por qué?**
+  - La lista anterior no daba una ruta de lectura concreta y podía llevar a revisar todos los documentos.
+- **¿Para qué?**
+  - Recuperar contexto suficiente con pocas lecturas y conservar la diferencia entre fuentes vigentes e históricas.
+
+## 2026-10-06 — Respuestas y pendientes de Gráficas v2
+
+- **¿Qué?**
+  - Se registró el editor avanzado, la privacidad deseada y las ideas diferidas de organización de gráficas; se señalaron tres aclaraciones estadísticas y de alcance.
+- **¿Por qué?**
+  - La entrevista recibió respuestas que fijan la dirección del producto, mientras dos «Así» dejan alternativas de cálculo abiertas.
+- **¿Para qué?**
+  - Redactar una especificación comprobable sin confundir requisitos de la primera entrega con ideas posteriores.
+
+## 2026-10-06 — Alcance y catálogo extensible de Gráficas v2
+
+- **¿Qué?**
+  - Se cerraron las aclaraciones de la entrevista y se documentó la propuesta de consulta, catálogo y adaptadores de visualización para datasets y Encuestas.
+- **¿Por qué?**
+  - Los porcentajes de selección múltiple, la ponderación y los tipos estadísticos iniciales ya tienen una decisión de producto; el editor actual ata fuente y gráfica a campos planos de dataset.
+- **¿Para qué?**
+  - Implementar la primera entrega con ECharts y poder incorporar tipos o un motor G2 cuando aporten valor, sin cambiar el contrato analítico de las gráficas guardadas.
+
+## 2026-10-06 — D3.js como candidato futuro
+
+- **¿Qué?**
+  - Se agregó D3.js a los pendientes de la biblioteca de gráficas.
+- **¿Por qué?**
+  - El usuario pidió considerarlo para futuras visualizaciones.
+- **¿Para qué?**
+  - Evaluar una implementación a medida cuando exista un tipo concreto que lo justifique.
+
+## 2026-10-06 — Revisión de PostgreSQL antes de Gráficas v2
+
+- **¿Qué?**
+  - Se contrastó el PostgreSQL conectado con las tablas de v1 y se preparó, sin aplicar, el esquema privado de Gráficas v2 por organización.
+- **¿Por qué?**
+  - El código de Gráficas v1 usa `public.charts` y `tenant_id`, pero la base conectada no tiene tablas de usuario en `public`.
+- **¿Para qué?**
+  - Construir el almacenamiento de Encuestas sin romper la compatibilidad que se necesita para Datasets y aclarar si hay datos v1 en otra base.
+
+## 2026-10-06 — Almacenamiento de Gráficas v2
+
+- **¿Qué?**
+  - Se aplicó la migración de gráficas, publicaciones y anotaciones en `insight_core`; se confirmaron las tres tablas, RLS y ausencia de lectura directa de `authenticated`.
+  - El usuario aclaró que se conservan capacidades de v1 para contenido nuevo, sin migrar registros anteriores.
+- **¿Por qué?**
+  - El esquema v1 usa `tenant_id` y no existe en el PostgreSQL conectado, mientras Encuestas opera por `organization_id`.
+- **¿Para qué?**
+  - Dar a las gráficas nuevas un almacenamiento multi-organización y planear la continuidad de Datasets sin depender de tablas v1 ausentes.
+
+## 2026-10-06 — Fuentes iniciales de Gráficas v2
+
+- **¿Qué?**
+  - Se añadieron cálculo y editor de Encuestas, guardado privado, publicaciones por snapshot, anotaciones y un origen de datasets planos por organización con carga CSV/TSV/TXT.
+  - La migración 025 de datasets se aplicó y se verificó que ambas tablas tienen RLS y no ofrecen lectura directa a `authenticated`.
+- **¿Por qué?**
+  - La base actual contiene Encuestas y organización, pero no las tablas `public` que usaba el editor plano heredado.
+- **¿Para qué?**
+  - Permitir crear contenido nuevo desde ambas fuentes sin reintroducir `tenant_id`.
+
+## 2026-10-06 — Mapas y dashboards por organización
+
+- **¿Qué?**
+  - Se aplicaron y verificaron las migraciones 026 y 027 para mapas GeoJSON y dashboards v2 con ítems y publicaciones por organización.
+  - El editor plano agregó dispersión, histograma y boxplot; los dashboards nuevos pueden combinar ambas fuentes, reordenar gráficas, filtrar datasets y exportar PDF.
+- **¿Por qué?**
+  - El tipo mapa y el módulo de dashboards heredados dependían de tablas `public` inexistentes en la base actual.
+- **¿Para qué?**
+  - Mantener la creación de visualizaciones y paneles nuevos dentro de los esquemas propios de Insight.
+
+## 2026-10-06 — Layout persistente en dashboards v2
+
+- **¿Qué?**
+  - Se añadió y verificó `layout_json` en los ítems del dashboard y se conectó el cambio de posición y tamaño desde la interfaz.
+- **¿Por qué?**
+  - Ordenar tarjetas no recuperaba el layout libre que tenía el dashboard heredado.
+- **¿Para qué?**
+  - Permitir organizar las gráficas de ambas fuentes en el área de trabajo y conservar esa composición al volver o publicar.
+
+## 2026-10-06 — Límite de carga de Gráficas v2
+
+- **¿Qué?**
+  - Se fijó en 4 MB el máximo de CSV/TSV/TXT y GeoJSON, con validación en cliente y servidor; la arquitectura documenta que las tablas nuevas están en `insight_core`.
+- **¿Por qué?**
+  - Las funciones de Vercel admiten cuerpos de petición de hasta 4.5 MB y el límite anunciado antes superaba esa capacidad.
+- **¿Para qué?**
+  - Evitar que el usuario prepare una carga que la plataforma rechazará antes de llegar a la aplicación.
+
+## 2026-10-06 — Filtro de Encuestas en dashboards v2
+
+- **¿Qué?**
+  - Se añadió un selector de pregunta categórica y respuesta por instrumento y versión; las gráficas correspondientes se recalculan con el filtro del dashboard junto al filtro guardado.
+- **¿Por qué?**
+  - El dashboard solo filtraba filas de datasets y dejaba las gráficas de Encuestas sin exploración conjunta.
+- **¿Para qué?**
+  - Explorar varias visualizaciones de una encuesta con la misma población seleccionada sin alterar sus definiciones ni snapshots publicados.
+
+## 2026-10-06 — Poblaciones combinadas en gráficas de Encuestas
+
+- **¿Qué?**
+  - El editor permite combinar hasta cuatro filtros de respuesta por gráfica; el contrato conserva la lectura de definiciones previas con un solo filtro.
+- **¿Por qué?**
+  - Una sola condición limita el análisis de segmentos multidimensionales de las encuestas.
+- **¿Para qué?**
+  - Comparar indicadores sobre poblaciones acotadas por varias preguntas sin duplicar ni transformar la fuente.
+
+## 2026-10-06 — Acceso a gráficas de Encuestas y página 404
+
+- **¿Qué?**
+  - Gráficas carga instrumento y versión con su propia autorización de fuente, reutilizando la comprobación de acceso al recurso; se añadió una página 404 ilustrada con una gráfica SVG.
+  - Se regeneró la caché local de desarrollo de Next después de observar una compilación atascada y compactaciones repetidas.
+- **¿Por qué?**
+  - La autorización de Gráficas debía poder comprobar la fuente sin depender de la pantalla de Encuestas. La ruta del instrumento seguía devolviendo 404; la caché de desarrollo alcanzó unos 15.9 GB.
+- **¿Para qué?**
+  - Abrir las encuestas permitidas desde Gráficas y ofrecer una salida clara y entretenida cuando un recurso realmente no existe.
+
+## 2026-10-06 — Corrección del 404 de Gráficas v2
+
+- **¿Qué?**
+  - Se corrigió la validación de UUID en el editor, las gráficas guardadas, los datasets y los dashboards v2. El servidor HTTPS local usa Webpack y prioriza la conexión directa a PostgreSQL durante desarrollo.
+- **¿Por qué?**
+  - La expresión regular omitía un bloque de cuatro caracteres y enviaba identificadores válidos a la página 404. En la depuración, Turbopack generó una caché excesiva y el pooler remoto agotó el tiempo de conexión, aunque la URL directa respondió.
+- **¿Para qué?**
+  - Permitir abrir y guardar gráficas con IDs reales y distinguir los errores de acceso o conexión de un recurso inexistente.

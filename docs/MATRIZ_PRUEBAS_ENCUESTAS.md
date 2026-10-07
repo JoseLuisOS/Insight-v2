@@ -1,6 +1,6 @@
 # Matriz de pruebas — carga de encuestas
 
-Fecha: 2026-10-03. Hay ocho archivos `encuesta_sintetica_20p_100r*` en la raíz: JSON, CSV, TXT tabulado, TXT delimitado por pipe, TXT delimitado por punto y coma, XLSX, XLS y ODS. Todos representan una encuesta cotidiana de compras de despensa en Hermosillo con 20 preguntas redactadas, 100 respuestas y 2 000 valores. Los tabulares tienen columnas desordenadas; las hojas de cálculo incluyen una segunda hoja `Ignorar`.
+Fecha: 2026-10-03. `scripts/generate-survey-fixture.js` genera ocho archivos `encuesta_sintetica_20p_100r*`: JSON, CSV, TXT tabulado, TXT delimitado por pipe, TXT delimitado por punto y coma, XLSX, XLS y ODS. Todos representan una encuesta cotidiana de compras de despensa en Hermosillo con 20 preguntas redactadas, 100 respuestas y 2 000 valores. Los tabulares tienen columnas desordenadas; las hojas de cálculo incluyen una segunda hoja `Ignorar`.
 
 Estados: **Automatizada** = cubierta por `node scripts/verify-survey-fixture.js`; **Pendiente E2E** = requiere probar la aplicación desplegada, Storage, Workflow y PostgreSQL con una organización de prueba.
 

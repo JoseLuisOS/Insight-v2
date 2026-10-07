@@ -8,8 +8,10 @@ description: Use when changing or understanding the Intersel Insight application
 ## Orientación
 
 - Antes de tocar código, consulta [`docs/MAPA_MODULOS.md`](../../../docs/MAPA_MODULOS.md). Localiza el componente, su versión, archivo principal y dependencias inmediatas; luego confirma esos detalles en el código.
+- Para contexto adicional, consulta el [índice de `docs/`](../../../docs/README.md) y abre únicamente los documentos indicados por la tarea.
 - Confirma el comportamiento en el código ejecutable. El mapa es un índice y puede quedar desactualizado después de cambios.
-- [`ARQUITECTURA_BBDD.md`](../../../ARQUITECTURA_BBDD.md) es la referencia designada por el usuario para el estado aplicado de la base y el modelo objetivo de datos. El producto es multi-organización, no multitenant: cada deployment es una instalación y puede contener varias organizaciones; el acceso a datos se delimita por organización.
+- [`docs/ARQUITECTURA_BBDD.md`](../../../docs/ARQUITECTURA_BBDD.md) es la referencia designada por el usuario para el estado aplicado de la base y el modelo objetivo de datos. El producto es multi-organización, no multitenant: cada deployment es una instalación y puede contener varias organizaciones; el acceso a datos se delimita por organización.
+- Actualiza `docs/ARQUITECTURA_BBDD.md` siempre que cambien el modelo de datos, sus relaciones, permisos, reglas de aislamiento o el estado aplicado de la base; distingue decisiones objetivo de migraciones verificadas.
 - Distingue objetivo y estado: el código actual aún contiene contratos `tenant_id`/`profiles`/`tenants`; no los presentes como modelo objetivo ni asumas que ya fueron migrados. Confirma el estado en la ruta afectada.
 - Los demás documentos Markdown preexistentes son referencias no verificadas hasta contrastar sus afirmaciones con el código o con una fuente que el usuario declare vigente.
 
@@ -21,7 +23,7 @@ description: Use when changing or understanding the Intersel Insight application
 4. Implementa el cambio pedido sin cargar documentación o módulos no relacionados. Amplía la inspección si el código revela una dependencia necesaria.
 5. Actualiza `docs/MAPA_MODULOS.md` cuando cambien rutas, relaciones, contratos compartidos o flujos. Mantén las afirmaciones separadas entre observaciones confirmadas e inferencias.
 6. Si agregas, quitas o reubicas un componente, ruta o servicio, actualiza el mapa en el mismo cambio.
-   Al cambiar schemas, tablas, permisos o RPC de la base, actualiza también el estado aplicado en `ARQUITECTURA_BBDD.md` después de verificar la migración.
+   Al cambiar schemas, tablas, permisos o RPC de la base, actualiza también el estado aplicado en `docs/ARQUITECTURA_BBDD.md` después de verificar la migración.
 7. Existe una bitácora de referencia en [`docs/BITACORA.md`](../../../docs/BITACORA.md). Consúltala solo si el historial aporta contexto. Al cerrar un cambio de código o documentación de producto, agrega una entrada breve al final: una lista bajo cada encabezado **¿Qué?**, **¿Por qué?** y **¿Para qué?**. No uses tablas ni repitas el diff.
 8. Informa qué archivos cambiaste y qué verificación hiciste. No ejecutes pruebas si el usuario no las pidió.
 

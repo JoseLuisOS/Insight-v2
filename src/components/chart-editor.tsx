@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ChartRenderer } from "@/components/chart-renderer";
 import { saveChart, updateChart } from "@/app/(app)/charts/actions";
+import { saveCoreDatasetChart } from "@/app/(app)/charts/dataset/actions";
 import {
   PRESET_PALETTES,
   type Aggregation,
@@ -20,6 +21,9 @@ const CHART_TYPES: { value: ChartType; label: string }[] = [
   { value: "pie", label: "Pastel" },
   { value: "table", label: "Tabla" },
   { value: "map", label: "Mapa" },
+  { value: "scatter", label: "Dispersión" },
+  { value: "histogram", label: "Histograma" },
+  { value: "boxplot", label: "Caja" },
 ];
 
 const AGGS: { value: Aggregation; label: string }[] = [
@@ -41,6 +45,7 @@ export function ChartEditor({
   chartId,
   initialName,
   initialConfig,
+  coreDataset = false,
 }: {
   datasetId: string;
   datasetName: string;
@@ -53,6 +58,7 @@ export function ChartEditor({
   chartId?: string;
   initialName?: string;
   initialConfig?: ChartConfig;
+  coreDataset?: boolean;
 }) {
   const router = useRouter();
   const palettes: Record<string, string[]> = {
@@ -75,7 +81,7 @@ export function ChartEditor({
     setConfig((c) => ({ ...c, ...patch }));
 
   const needsX = config.type !== "kpi" && config.type !== "table";
-  const needsY = config.type !== "table";
+  const needsY = config.type !== "table" && config.type !== "histogram";
 
   const selectedMap = maps.find((m) => m.id === config.mapId);
   const geo = selectedMap
@@ -85,14 +91,16 @@ export function ChartEditor({
   function save() {
     setError(null);
     startSave(async () => {
-      const res = chartId
-        ? await updateChart(chartId, name, config)
-        : await saveChart(datasetId, name, config);
+      const res = coreDataset
+        ? await saveCoreDatasetChart(datasetId, name, config, chartId)
+        : chartId
+          ? await updateChart(chartId, name, config)
+          : await saveChart(datasetId, name, config);
       if ("error" in res) {
         setError(res.error);
         return;
       }
-      router.push(`/charts/${res.chartId}`);
+      router.push(coreDataset ? `/charts/dataset/${res.chartId}` : `/charts/${res.chartId}`);
     });
   }
 
@@ -112,7 +120,7 @@ export function ChartEditor({
         <div>
           <label className="mb-1 block text-sm font-medium">Tipo</label>
           <div className="grid grid-cols-3 gap-1">
-            {CHART_TYPES.map((t) => (
+            {CHART_TYPES.filter((t) => coreDataset || !["scatter", "histogram", "boxplot"].includes(t.value)).map((t) => (
               <button
                 key={t.value}
                 onClick={() => set({ type: t.value })}
@@ -215,7 +223,7 @@ export function ChartEditor({
                 ))}
               </select>
             </div>
-            <div>
+            {!(["scatter", "boxplot"].includes(config.type)) && <div>
               <label className="mb-1 block text-sm font-medium">Agregación</label>
               <select
                 value={config.aggregation ?? "sum"}
@@ -228,9 +236,12 @@ export function ChartEditor({
                   </option>
                 ))}
               </select>
-            </div>
+            </div>}
           </>
         )}
+
+        {config.type === "histogram" && <div><label className="mb-1 block text-sm font-medium">Intervalos: {config.bins ?? 12}</label>
+          <input type="range" min={2} max={50} value={config.bins ?? 12} onChange={(event) => set({ bins: Number(event.target.value) })} className="w-full" /></div>}
 
         {config.type !== "table" && (
           <details className="rounded-md border border-border p-3">

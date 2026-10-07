@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { createDashboardAndEdit } from "./actions";
+import { createDashboardV2 } from "./v2/actions";
+import { listDashboardsV2 } from "@/lib/dashboard-v2";
+import { chartOrganizations } from "@/lib/chart-v2-datasets";
 
 export default async function DashboardsPage() {
   const supabase = await createClient();
@@ -11,6 +13,7 @@ export default async function DashboardsPage() {
 
   const dashboards =
     (data as { id: string; name: string; dashboard_items: { count: number }[] }[] | null) ?? [];
+  const [newDashboards, organizations] = await Promise.all([listDashboardsV2(), chartOrganizations()]);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -19,7 +22,10 @@ export default async function DashboardsPage() {
           <h1 className="text-2xl font-semibold text-foreground">Dashboards</h1>
           <p className="mt-1 text-muted-foreground">Tableros con varias gráficas y filtros.</p>
         </div>
-        <form action={createDashboardAndEdit} className="flex gap-2">
+        <form action={createDashboardV2} className="flex flex-wrap gap-2">
+          <select name="organizationId" required className="rounded-md border border-input bg-background px-3 py-2 text-sm">
+            {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
+          </select>
           <input
             name="name"
             placeholder="Nombre del dashboard"
@@ -34,14 +40,21 @@ export default async function DashboardsPage() {
         </form>
       </div>
 
-      {dashboards.length === 0 ? (
+      {dashboards.length === 0 && newDashboards.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/40 p-12 text-center">
           <p className="text-sm font-medium text-foreground">Aún no tienes dashboards</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Crea uno y agrega tus gráficas en un grid.
           </p>
         </div>
-      ) : (
+      ) : (<>
+        {!!newDashboards.length && <section className="mb-8"><h2 className="mb-3 text-lg font-semibold">Dashboards v2</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{newDashboards.map((dashboard) => <Link
+            key={dashboard.id} href={`/dashboards/v2/${dashboard.id}`}
+            className="rounded-xl border border-border bg-card p-5 hover:border-primary">
+            <div className="font-medium">{dashboard.name}</div><div className="mt-2 text-sm text-muted-foreground">{dashboard.organization_name} · {dashboard.chart_count} gráficas</div>
+          </Link>)}</div></section>}
+        {!!dashboards.length && <section><h2 className="mb-3 text-lg font-semibold">Dashboards heredados</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {dashboards.map((d) => (
             <Link
@@ -55,7 +68,8 @@ export default async function DashboardsPage() {
               </div>
             </Link>
           ))}
-        </div>
+        </div></section>}
+      </>
       )}
     </div>
   );

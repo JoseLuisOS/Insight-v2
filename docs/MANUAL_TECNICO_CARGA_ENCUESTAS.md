@@ -2,7 +2,7 @@
 
 **Audiencia:** desarrollo, administración de la aplicación y operación de datos  
 **Alcance:** carga de instrumentos y respuestas mediante `/surveys/imports`  
-**Estado:** describe el código y el esquema implementados en `insight_survey` al 2 de octubre de 2026. No sustituye la arquitectura funcional general de [`ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md).
+**Estado:** describe el código y el esquema implementados en `insight_survey` al 2 de octubre de 2026. No sustituye la arquitectura funcional general de [`ARQUITECTURA_BBDD.md`](ARQUITECTURA_BBDD.md).
 
 ## 1. Propósito y límites
 
@@ -292,11 +292,11 @@ No registrar ni pegar `SUPABASE_SERVICE_ROLE_KEY` en trazas, tickets o capturas.
 
 ## 11. Referencias del repositorio y materiales de prueba
 
-- [`ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md): modelo multi-organización objetivo y estado aplicado de base de datos.
+- [`ARQUITECTURA_BBDD.md`](ARQUITECTURA_BBDD.md): modelo multi-organización objetivo y estado aplicado de base de datos.
 - [`MAPA_MODULOS.md`](MAPA_MODULOS.md): ubicación y dependencias del módulo.
 - [`IMPORTAR_ENCUESTAS.md`](IMPORTAR_ENCUESTAS.md): guía breve para quien carga archivos.
 - [`ENCUESTAS_HCV_2025.md`](ENCUESTAS_HCV_2025.md): carga inicial y particularidades de esos libros.
-- [`MATRIZ_PRUEBAS_ENCUESTAS.md`](../MATRIZ_PRUEBAS_ENCUESTAS.md): validaciones locales y casos pendientes de prueba extremo a extremo.
+- [`MATRIZ_PRUEBAS_ENCUESTAS.md`](MATRIZ_PRUEBAS_ENCUESTAS.md): validaciones locales y casos pendientes de prueba extremo a extremo.
 - `scripts/generate-survey-fixture.js` y `scripts/verify-survey-fixture.js`: generación y verificación de una encuesta cotidiana de 20 preguntas y 100 registros en ocho archivos que cubren los seis formatos admitidos.
 
 ## 12. Referencias externas

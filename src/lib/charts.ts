@@ -4,7 +4,7 @@
  * palette, clean grid, informative tooltips, responsive sizing.
  */
 
-export type ChartType = "kpi" | "bar" | "line" | "area" | "pie" | "table" | "map";
+export type ChartType = "kpi" | "bar" | "line" | "area" | "pie" | "table" | "map" | "scatter" | "histogram" | "boxplot";
 
 export type Aggregation = "sum" | "avg" | "count" | "min" | "max" | "none";
 
@@ -26,6 +26,7 @@ export type ChartConfig = {
   showLabels?: boolean;
   xLabel?: string;
   yLabel?: string;
+  bins?: number;
 };
 
 /** Brand-derived categorical palette (accessible, not a naive rainbow). */
@@ -53,6 +54,8 @@ const toNum = (v: unknown): number => {
   const n = typeof v === "number" ? v : parseFloat(String(v ?? ""));
   return Number.isFinite(n) ? n : 0;
 };
+const toStrictNumber = (value: unknown): number =>
+  value === null || value === undefined || value === "" ? NaN : Number(value);
 
 function aggregateValues(values: number[], agg: Aggregation): number {
   if (values.length === 0) return 0;
@@ -177,6 +180,69 @@ export function buildEChartsOption(
 
   const x = config.x;
   const agg = config.aggregation ?? "sum";
+
+  if (config.type === "scatter") {
+    if (!x || !config.y) return base;
+    const points = rows.flatMap((row) => {
+      const a = toStrictNumber(row[x]);
+      const b = toStrictNumber(row[config.y!]);
+      return Number.isFinite(a) && Number.isFinite(b) ? [[a, b]] : [];
+    });
+    return { ...base, tooltip: { trigger: "item" },
+      xAxis: { type: "value", name: config.xLabel ?? x, axisLabel: { color: axisColor } },
+      yAxis: { type: "value", name: config.yLabel ?? config.y, axisLabel: { color: axisColor } },
+      series: [{ type: "scatter", data: points, symbolSize: 8 }] };
+  }
+
+  if (config.type === "histogram") {
+    if (!x) return base;
+    const values = rows.map((row) => toStrictNumber(row[x])).filter(Number.isFinite);
+    if (!values.length) return base;
+    const min = values.reduce((current, value) => Math.min(current, value), Infinity);
+    const max = values.reduce((current, value) => Math.max(current, value), -Infinity);
+    const bins = max === min ? 1 : Math.max(2, Math.min(100, config.bins ?? 12));
+    const width = max === min ? 1 : (max - min) / bins;
+    const counts = Array.from({ length: bins }, () => 0);
+    for (const value of values) counts[Math.min(bins - 1, Math.floor((value - min) / width))] += 1;
+    const labels = counts.map((_, index) => `${(min + index * width).toFixed(1)}–${(min + (index + 1) * width).toFixed(1)}`);
+    return { ...base, xAxis: { type: "category", data: labels, name: config.xLabel ?? x,
+        axisLabel: { color: axisColor, rotate: bins > 8 ? 35 : 0 } },
+      yAxis: { type: "value", name: config.yLabel ?? "Frecuencia", axisLabel: { color: axisColor } },
+      series: [{ type: "bar", data: counts, label: { show: config.showLabels ?? false } }] };
+  }
+
+  if (config.type === "boxplot") {
+    if (!x || !config.y) return base;
+    const groups = new Map<string, number[]>();
+    for (const row of rows) {
+      const number = toStrictNumber(row[config.y]);
+      if (!Number.isFinite(number)) continue;
+      const group = String(row[x] ?? "Sin grupo");
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group)!.push(number);
+    }
+    const quantile = (values: number[], fraction: number) => {
+      const index = (values.length - 1) * fraction;
+      const lower = Math.floor(index);
+      return values[lower] + (values[Math.min(lower + 1, values.length - 1)] - values[lower]) * (index - lower);
+    };
+    const categories = [...groups.keys()];
+    const outliers: number[][] = [];
+    const boxes = categories.map((category, index) => {
+      const values = groups.get(category)!.sort((a, b) => a - b);
+      const q1 = quantile(values, 0.25);
+      const median = quantile(values, 0.5);
+      const q3 = quantile(values, 0.75);
+      const low = q1 - 1.5 * (q3 - q1);
+      const high = q3 + 1.5 * (q3 - q1);
+      const inside = values.filter((value) => value >= low && value <= high);
+      values.filter((value) => value < low || value > high).forEach((value) => outliers.push([index, value]));
+      return [inside[0], q1, median, q3, inside[inside.length - 1]];
+    });
+    return { ...base, xAxis: { type: "category", data: categories, name: config.xLabel ?? x, axisLabel: { color: axisColor } },
+      yAxis: { type: "value", name: config.yLabel ?? config.y, axisLabel: { color: axisColor } },
+      series: [{ type: "boxplot", data: boxes }, { type: "scatter", data: outliers, symbolSize: 5 }] };
+  }
 
   if (config.type === "pie") {
     if (!x) return base;

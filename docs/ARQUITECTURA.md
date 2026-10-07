@@ -1,6 +1,6 @@
 > **Estado: referencia histórica, no vigente.** El contenido de este archivo no se ha validado y puede contradecir el código y las decisiones actuales. No asumir que sus datos de infraestructura, base de datos, IAM, seguridad o estado de implementación son correctos.
 >
-> Para el modelo objetivo multi-organización, consulta [`ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md). Para ubicar la implementación actual, consulta [`MAPA_MODULOS.md`](MAPA_MODULOS.md) y verifica el código. El resto de este archivo se conserva solo como material pendiente de revisión.
+> Para el modelo objetivo multi-organización, consulta [`ARQUITECTURA_BBDD.md`](ARQUITECTURA_BBDD.md). Para ubicar la implementación actual, consulta [`MAPA_MODULOS.md`](MAPA_MODULOS.md) y verifica el código. El resto de este archivo se conserva solo como material pendiente de revisión.
 
 ## Índice
 
@@ -69,7 +69,7 @@ para el detalle tarea-por-tarea.
 
 **Implementado** (2026-09-21) — `scripts/003_platform_iam_foundation.sql` +
 `scripts/004_iam_seed_hcv.sql` + `scripts/006_rls_layer1.sql`. Modelo multi-organización de
-[`ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md) §3–§15, en el schema `platform`:
+[`ARQUITECTURA_BBDD.md`](ARQUITECTURA_BBDD.md) §3–§15, en el schema `platform`:
 `core_organizations`, `core_user_profiles`, `iam_platform_admins`,
 `iam_organization_memberships`, `iam_roles`, `iam_membership_roles`, `iam_modules`,
 `iam_permissions`, `iam_role_permissions`, `iam_user_permission_overrides`, `iam_resources`,

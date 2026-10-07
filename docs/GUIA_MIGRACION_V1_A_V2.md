@@ -1,6 +1,6 @@
 # Guía breve: migrar módulos v1 a v2
 
-Esta guía explica cómo adaptar una pieza de la aplicación al modelo multi-organización. No repite el modelo completo: usa [`ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md) como contrato objetivo y [`MAPA_MODULOS.md`](MAPA_MODULOS.md) como índice del código y estado de versión.
+Esta guía explica cómo adaptar una pieza de la aplicación al modelo multi-organización. No repite el modelo completo: usa [`ARQUITECTURA_BBDD.md`](ARQUITECTURA_BBDD.md) como contrato objetivo y [`MAPA_MODULOS.md`](MAPA_MODULOS.md) como índice del código y estado de versión.
 
 Antes de tocar código, abre primero el mapa. Al agregar, quitar o reubicar componentes, rutas o servicios, actualízalo en el mismo cambio. Existe una bitácora de referencia en [`BITACORA.md`](BITACORA.md); al cerrar trabajo de código o documentación de producto, agrega una entrada breve con listas bajo **¿Qué?**, **¿Por qué?** y **¿Para qué?**, nunca una tabla.
 

@@ -1,6 +1,6 @@
 # Importación HCV 2025
 
-Esta carga corresponde a los archivos `Base Cuestionario A - Encuesta HCV 2025.xlsx` y `Base Cuestionario B - Encuesta HCV 2025.xlsx` de la raíz del proyecto. Se ejecutó en la base configurada por `APP_DATABASE_URL` el 2026-09-29 mediante [`scripts/import-hcv-2025.js`](../scripts/import-hcv-2025.js).
+Esta carga se hizo a partir de los archivos `Base Cuestionario A - Encuesta HCV 2025.xlsx` y `Base Cuestionario B - Encuesta HCV 2025.xlsx`. Se ejecutó en la base configurada por `APP_DATABASE_URL` el 2026-09-29 mediante [`scripts/import-hcv-2025.js`](../scripts/import-hcv-2025.js). Los archivos fuente deben estar disponibles para repetir la comprobación o la carga.
 
 ## Modelo aplicado
 

@@ -1,6 +1,6 @@
 # Plan de Desarrollo — referencia histórica pendiente de revisión
 
-> **Obsoleto como especificación de producto y arquitectura.** Este plan usa un modelo multi-tenant que no corresponde a la decisión actual: Intersel Insight será multi-organización, no multitenant. No usar sus decisiones de tenancy, seguridad, datos, infraestructura ni roadmap como instrucciones vigentes. El modelo objetivo está en [`ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md); el código actual se navega desde [`MAPA_MODULOS.md`](MAPA_MODULOS.md). El contenido restante requiere revisión antes de reutilizarse.
+> **Obsoleto como especificación de producto y arquitectura.** Este plan usa un modelo multi-tenant que no corresponde a la decisión actual: Intersel Insight será multi-organización, no multitenant. No usar sus decisiones de tenancy, seguridad, datos, infraestructura ni roadmap como instrucciones vigentes. El modelo objetivo está en [`ARQUITECTURA_BBDD.md`](ARQUITECTURA_BBDD.md); el código actual se navega desde [`MAPA_MODULOS.md`](MAPA_MODULOS.md). El contenido restante requiere revisión antes de reutilizarse.
 
 **Proyecto:** Plataforma multi-tenant de dashboards (working name: *Intersel Insight*)
 **Documento:** Plan de arquitectura y desarrollo — v1.0

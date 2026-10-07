@@ -1,6 +1,6 @@
 # IAM Multi-Organization Migration — Implementation Plan
 
-> **Plan histórico, no estado de ejecución.** Verifica cada tarea contra el código y la base requerida antes de continuar. El modelo objetivo designado está en [`../../../ARQUITECTURA_BBDD.md`](../../../ARQUITECTURA_BBDD.md); el mapa del código está en [`../../MAPA_MODULOS.md`](../../MAPA_MODULOS.md).
+> **Plan histórico, no estado de ejecución.** Verifica cada tarea contra el código y la base requerida antes de continuar. El modelo objetivo designado está en [`ARQUITECTURA_BBDD.md`](../../ARQUITECTURA_BBDD.md); el mapa del código está en [`MAPA_MODULOS.md`](../../MAPA_MODULOS.md).
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -10,7 +10,7 @@
 
 **Tech Stack:** PostgreSQL 17 (Supabase project `bkeiyculoypaisbpjvln`), plain `.sql` scripts run with `node` + `pg` (no Supabase CLI / MCP access to this project — see `.claude/skills/insight-v2/SKILL.md`).
 
-**Spec:** [`ARQUITECTURA_BBDD.md`](../../../ARQUITECTURA_BBDD.md) (repo root) — sections §3–§21 (tables), §22–§23 (RLS vs. authorization split).
+**Spec:** [`ARQUITECTURA_BBDD.md`](../../ARQUITECTURA_BBDD.md) (docs) — sections §3–§21 (tables), §22–§23 (RLS vs. authorization split).
 
 ## Global Constraints
 

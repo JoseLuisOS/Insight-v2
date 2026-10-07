@@ -215,7 +215,7 @@ en Data API (Supabase dashboard) cuando el frontend necesite consultarlos vía `
 
 **Contexto:** el entregable original (`docs/PLAN.md`, tenant único, proyecto Supabase
 `kytvxyjvnxamqdrhwezw`, 23 migraciones en `supabase/migrations/`) se reemplaza por el modelo
-**multi-organización** de [`ARQUITECTURA_BBDD.md`](../ARQUITECTURA_BBDD.md), sobre la base de
+**multi-organización** de [`ARQUITECTURA_BBDD.md`](ARQUITECTURA_BBDD.md), sobre la base de
 datos real documentada en `.env` (proyecto ref `bkeiyculoypaisbpjvln`, ya en producción con 11
 tablas `survey_*` de encuestas). Ver [`docs/ARQUITECTURA.md`](ARQUITECTURA.md) — nueva fuente
 de verdad viva — y el plan ejecutado:

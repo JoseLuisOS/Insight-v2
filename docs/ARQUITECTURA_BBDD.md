@@ -1,15 +1,29 @@
-Sí. Con lo que cerramos por voz ya hay suficiente para fijar una arquitectura sin inventar requisitos adicionales.
-
 # Intersel Insight — Capa Multi-organización e IAM
 
-> **Fuente de arquitectura.** La sección «Estado aplicado» documenta la base verificada hasta el 2026-10-02; el resto del documento conserva el modelo funcional objetivo multi-organización. Para conocer qué módulos de la app ya usan ese modelo, consulta [`docs/MAPA_MODULOS.md`](docs/MAPA_MODULOS.md) y verifica el código.
+> **Fuente de arquitectura.** La sección «Estado aplicado» documenta la base verificada hasta el 2026-10-06; el resto del documento conserva el modelo funcional objetivo multi-organización. Para conocer qué módulos de la app ya usan ese modelo, consulta [`MAPA_MODULOS.md`](MAPA_MODULOS.md) y verifica el código.
 
-## Estado aplicado de la base de datos (2026-10-02)
+Para las relaciones implementadas de Encuestas y su lectura analítica, consulta [`MAPA_DATOS_ENCUESTAS.md`](MAPA_DATOS_ENCUESTAS.md). El ejemplo `survey_surveys` de §18 es conceptual y no representa las tablas vigentes.
+
+## Gráficas v2: base aplicada
+
+La inspección de PostgreSQL del 2026-10-06 con el rol `insight_app` confirmó que en la base conectada existen `insight_core.core_organizations` e `insight_survey.survey_observations`, pero **no existen tablas de usuario en `public`**. En particular, `public.datasets`, `public.charts`, `public.dashboards`, `public.publications` y `public.snapshots` de las migraciones v1 no están presentes allí. Esto describe esa conexión, no demuestra qué datos puede haber en otra instalación de v1.
+
+[`scripts/024_charts_v2.sql`](../scripts/024_charts_v2.sql) se aplicó el 2026-10-06 como `insight_app` y creó `insight_core.core_charts`, `core_chart_publications` y `core_chart_annotations`, todos acotados por `organization_id`, con acceso directo de `anon`/`authenticated` revocado. Se verificó en PostgreSQL que las tres tablas son propiedad de `insight_app`, tienen RLS activo y `authenticated` no tiene permiso `SELECT`. `core_charts` admite referencias de origen `survey` o `dataset`; un trigger confirma que el instrumento, la versión y la organización coinciden para Encuestas. El origen `dataset` apunta a `insight_core.core_datasets` mediante el trigger de la migración 025. La aplicación debe validar organización y acceso al recurso antes de usar la conexión propietaria `insight_app`.
+
+[`scripts/025_chart_datasets_v2.sql`](../scripts/025_chart_datasets_v2.sql) se aplicó y verificó el 2026-10-06 como `insight_app`. `core_datasets` conserva nombre, columnas, creador y organización; `core_dataset_rows` conserva cada registro como JSONB, vinculado al dataset y a la misma organización mediante FK compuesta. Un trigger valida que una gráfica de origen `dataset` apunte a un dataset de su organización. Ambas tablas tienen RLS y carecen de lectura directa de `authenticated`. Esta fuente plana nueva permite crear contenido tabular sin reintroducir `public.datasets` ni `tenant_id`; las rutas históricas de Datasets y SQL Lab no se consideran migradas por esta adición.
+
+[`scripts/026_chart_maps_v2.sql`](../scripts/026_chart_maps_v2.sql) se aplicó y verificó el 2026-10-06. `core_chart_maps` conserva GeoJSON por organización y creador; tiene RLS y no concede lectura directa a `authenticated`. [`scripts/027_dashboards_v2.sql`](../scripts/027_dashboards_v2.sql) también se aplicó y verificó ese día: `core_dashboards`, `core_dashboard_items` y `core_dashboard_publications` comparten `organization_id`; las FK compuestas impiden vincular una gráfica de otra organización. Las tres tablas tienen RLS y no conceden lectura directa a `authenticated`. Los snapshots públicos solo se leen por token desde el servidor.
+
+[`scripts/028_dashboard_layouts_v2.sql`](../scripts/028_dashboard_layouts_v2.sql) se aplicó y verificó el 2026-10-06; `core_dashboard_items.layout_json` guarda posición y tamaño de cada tarjeta como objeto JSONB. La app valida rangos y propiedad del dashboard antes de actualizarlo.
+
+El usuario aclaró que se deben conservar **las capacidades de Gráficas v1 para contenido nuevo**, sin migrar datos ni gráficas guardadas de otra base. La ausencia de tablas `public` v1 en la conexión actual implica que el código histórico no basta para satisfacer esa continuidad aquí. Los flujos nuevos de dataset plano, gráfica, dashboard y publicación ya usan `insight_core` por organización; SQL Lab y conectores externos siguen en v1 y requieren adaptación propia, sin recrear `tenants` como modelo objetivo.
+
+## Estado aplicado de la base de datos (2026-10-06)
 
 | Schema | Propiedad | Objetos y responsabilidad |
 |---|---|---|
 | `auth` | Supabase (`supabase_admin`) | Usuarios, identidades y sesiones; no se renombra ni se administra desde las migraciones propias. |
-| `insight_core` | `insight_app` | `core_organizations`, `core_user_profiles`; catálogo `app_groups` y `app_modules`, y auditoría. |
+| `insight_core` | `insight_app` | `core_organizations`, `core_user_profiles`; catálogo `app_groups` y `app_modules`, auditoría, tablas `core_chart*`, `core_dataset*` y `core_dashboard*` de visualización v2. |
 | `insight_iam` | `insight_app` | Diez tablas `iam_*`: administradores globales, membresías, roles, permisos, catálogos y acceso a recursos. |
 | `insight_survey` | `insight_app` | Estudios, instrumentos, versiones, preguntas, observaciones, respuestas, trabajos de importación y secuencias de códigos `survey_*`. |
 | `private` | `insight_app` | Dos funciones auxiliares de RLS: `is_platform_admin`, `active_organization_ids`. |
@@ -31,19 +45,19 @@ flowchart LR
   Private --> Members
 ```
 
-- La migración aplicada está en [`scripts/011_reorganize_schemas.sql`](scripts/011_reorganize_schemas.sql). `platform`, `intersel_insight` y el schema vacío `survey` se retiraron; las 23 tablas conservaron sus datos, propietario, identificadores, políticas y RLS activo.
-- [`scripts/012_insight_module_catalog.sql`](scripts/012_insight_module_catalog.sql) introdujo el catálogo y la auditoría en `insight_core`. En esa migración los niveles se llamaban `app_modules`/`app_submodules`; el nombre final se normalizó en la 014.
-- [`scripts/013_insight_control_plane.sql`](scripts/013_insight_control_plane.sql) retiró Insight del catálogo editable y reservó su espacio. El grupo fijo **Insight / Grupos y módulos** vive en código y siempre está disponible para `sysadmin`, aun si todos los grupos gestionables están apagados. No tiene estado ni concesión por organización.
-- [`scripts/014_catalog_groups_modules.sql`](scripts/014_catalog_groups_modules.sql) renombró las tablas y relaciones del catálogo: `app_groups` contiene los grupos, `app_modules` sus módulos, `app_module_entitlements` las concesiones por organización y `app_module_audit` la bitácora de cambios. También actualizó el tipo de entidad en la auditoría y el trigger de concesiones. La base conserva 4 grupos y 10 módulos.
-- [`scripts/015_remove_ready_state.sql`](scripts/015_remove_ready_state.sql) retiró `listo`, convirtió el grupo que lo usaba a `desarrollo` y eliminó `app_module_entitlements`, sus triggers y su función. Antes de eliminarla se verificó que las 20 concesiones estuvieran sin asignación y habilitadas por defecto. La base conserva 4 grupos y 10 módulos.
-- [`scripts/016_catalog_operate_permissions.sql`](scripts/016_catalog_operate_permissions.sql) sincroniza cada `app_modules.code` con `iam_modules.code` y crea su permiso `<code>.operar` mediante trigger. Se aplicó como `insight_app` y se confirmaron 10 permisos `operar` para 10 módulos. La migración los asignó a los roles existentes para conservar la visibilidad inicial. Los nuevos módulos reciben el permiso, pero su asignación a roles o usuarios se decide por separado.
-- [`scripts/017_single_sysadmin.sql`](scripts/017_single_sysadmin.sql) conserva únicamente la organización «Hermosillo ¿Cómo vamos?» creada en la app, donde José Luis es Owner; retira la organización inicial sembrada tras comprobar que carecía de datos de negocio. `sysadminodin@temikia.com` es el único `sysadmin` global en `iam_platform_admins`, sin membresías. Una restricción única impide un segundo `sysadmin`; triggers verifican la identidad maestra, protegen ese registro e impiden asignarle membresías. `iam_roles` reserva el código `sysadmin` para el nivel global. La RPC `list_org_members` excluye a los administradores globales.
-- [`scripts/018_managed_admin_modules.sql`](scripts/018_managed_admin_modules.sql) incorporó Roles y Permisos a `app_modules` bajo Administración, en estado `desarrollo`, con sus permisos `operar`. El trigger de alta concede `operar` a los roles existentes cuando se crea cualquier módulo. Su acceso ejecutable conserva la exigencia de sysadmin y ahora también respeta el estado del catálogo en página y API.
-- [`scripts/019_retire_legacy_organization_module.sql`](scripts/019_retire_legacy_organization_module.sql) retiró el módulo provisional «Organización» de Administración y su permiso `operar`, tras comprobar que no tenía acciones adicionales ni concesiones individuales o de recursos. Su auditoría permanece; el gestor real de Organizaciones vive en el grupo fijo Insight. El catálogo aplicado contiene 4 grupos y 12 módulos.
-- [`scripts/020_survey_catalog.sql`](scripts/020_survey_catalog.sql) registró **Encuestas / Encuestas** como grupo y módulo gestionables, enlazados a `/surveys`. El módulo consulta estudios, instrumentos, versiones y cuestionarios de `insight_survey`. El permiso `encuestas.operar` se conservó en los roles existentes que ya tenían `survey.access` y `survey.view`; las consultas vuelven a comprobar esos permisos por organización y respetan los recursos `survey` restringidos por instrumento. En la base inspeccionada al aplicar esta migración también persistía el módulo provisional `organizacion`, por lo que el catálogo observado suma 5 grupos y 14 módulos; esa discrepancia con el registro de la 019 queda pendiente de reconciliar por separado.
-- **Carga y consulta HCV 2025 (2026-09-29):** [`scripts/import-hcv-2025.js`](scripts/import-hcv-2025.js) cargó en una transacción el estudio `HCV_PERCEPCION_2025` con los instrumentos A y B, 426 preguntas, 3,231 observaciones y 689,036 respuestas. La carga conserva los valores originales y corrige dos permutaciones verificadas de columnas en A; detalles y hashes en [`docs/ENCUESTAS_HCV_2025.md`](docs/ENCUESTAS_HCV_2025.md). La ruta `/surveys/[id]/responses` consulta observaciones paginadas de la versión actual y sus respuestas individuales con los permisos de organización y recurso del instrumento.
-- **Importaciones reutilizables (2026-09-29):** [`scripts/021_survey_import_jobs.sql`](scripts/021_survey_import_jobs.sql) y [`scripts/022_serverless_survey_imports.sql`](scripts/022_serverless_survey_imports.sql) se aplicaron como `insight_app`. `insight_survey.survey_import_jobs` guarda organización, creador, ruta de archivo privado, SHA-256, vista previa, asignación de columnas, ejecución de Workflow y estado; `source_bytes` permanece opcional para tareas antiguas. `survey_import_job_chunks` registra bloques transaccionales e idempotentes. `/surveys/imports` acepta TXT, CSV, XLSX, XLS, ODS y JSON, exige `survey.access` + `survey.create` y asigna códigos de pregunta `P###` por posición. Permite revisar hasta 25 valores distintos aleatorios por pregunta antes de confirmar, o hasta 10 si alguna respuesta supera siete palabras, además de eliminar cargas aún no procesadas. El contrato interno de mapeo se conserva para trabajos previos, pero la interfaz ya no lo edita. En hojas de cálculo solo se lee la primera hoja, sin diccionario. El navegador sube directamente al bucket privado `survey-imports` y una ejecución de Workflow de Vercel inicia bajo demanda; no hay trabajador residente. La versión se publica únicamente tras verificar todos los bloques. El remapeo especial de HCV A no se aplica automáticamente a cargas generales.
-- **Prefijos y códigos de encuestas (2026-10-02):** [`scripts/023_organization_prefix_survey_codes.sql`](scripts/023_organization_prefix_survey_codes.sql) se aplicó como `insight_app` y se verificó en la base. `core_organizations.code_prefix` es único, obligatorio y contiene tres caracteres alfanuméricos mayúsculos; los existentes quedaron como HCV e INT. `survey_code_sequences` guarda dos contadores globales por organización, independientes para estudios e instrumentos, protegidos con RLS. `survey_import_jobs.version` guarda la versión completa con parte decimal (`1.0`, `1.542`, etc.). El formulario solicita solo el entero y el servidor genera los códigos y la versión `.0`; reutiliza estudios e instrumentos por nombre dentro de su organización y rechaza la misma versión de un instrumento existente o en carga. Los códigos históricos se conservan.
+- La migración aplicada está en [`scripts/011_reorganize_schemas.sql`](../scripts/011_reorganize_schemas.sql). `platform`, `intersel_insight` y el schema vacío `survey` se retiraron; las 23 tablas conservaron sus datos, propietario, identificadores, políticas y RLS activo.
+- [`scripts/012_insight_module_catalog.sql`](../scripts/012_insight_module_catalog.sql) introdujo el catálogo y la auditoría en `insight_core`. En esa migración los niveles se llamaban `app_modules`/`app_submodules`; el nombre final se normalizó en la 014.
+- [`scripts/013_insight_control_plane.sql`](../scripts/013_insight_control_plane.sql) retiró Insight del catálogo editable y reservó su espacio. El grupo fijo **Insight / Grupos y módulos** vive en código y siempre está disponible para `sysadmin`, aun si todos los grupos gestionables están apagados. No tiene estado ni concesión por organización.
+- [`scripts/014_catalog_groups_modules.sql`](../scripts/014_catalog_groups_modules.sql) renombró las tablas y relaciones del catálogo: `app_groups` contiene los grupos, `app_modules` sus módulos, `app_module_entitlements` las concesiones por organización y `app_module_audit` la bitácora de cambios. También actualizó el tipo de entidad en la auditoría y el trigger de concesiones. La base conserva 4 grupos y 10 módulos.
+- [`scripts/015_remove_ready_state.sql`](../scripts/015_remove_ready_state.sql) retiró `listo`, convirtió el grupo que lo usaba a `desarrollo` y eliminó `app_module_entitlements`, sus triggers y su función. Antes de eliminarla se verificó que las 20 concesiones estuvieran sin asignación y habilitadas por defecto. La base conserva 4 grupos y 10 módulos.
+- [`scripts/016_catalog_operate_permissions.sql`](../scripts/016_catalog_operate_permissions.sql) sincroniza cada `app_modules.code` con `iam_modules.code` y crea su permiso `<code>.operar` mediante trigger. Se aplicó como `insight_app` y se confirmaron 10 permisos `operar` para 10 módulos. La migración los asignó a los roles existentes para conservar la visibilidad inicial. Los nuevos módulos reciben el permiso, pero su asignación a roles o usuarios se decide por separado.
+- [`scripts/017_single_sysadmin.sql`](../scripts/017_single_sysadmin.sql) conserva únicamente la organización «Hermosillo ¿Cómo vamos?» creada en la app, donde José Luis es Owner; retira la organización inicial sembrada tras comprobar que carecía de datos de negocio. `sysadminodin@temikia.com` es el único `sysadmin` global en `iam_platform_admins`, sin membresías. Una restricción única impide un segundo `sysadmin`; triggers verifican la identidad maestra, protegen ese registro e impiden asignarle membresías. `iam_roles` reserva el código `sysadmin` para el nivel global. La RPC `list_org_members` excluye a los administradores globales.
+- [`scripts/018_managed_admin_modules.sql`](../scripts/018_managed_admin_modules.sql) incorporó Roles y Permisos a `app_modules` bajo Administración, en estado `desarrollo`, con sus permisos `operar`. El trigger de alta concede `operar` a los roles existentes cuando se crea cualquier módulo. Su acceso ejecutable conserva la exigencia de sysadmin y ahora también respeta el estado del catálogo en página y API.
+- [`scripts/019_retire_legacy_organization_module.sql`](../scripts/019_retire_legacy_organization_module.sql) retiró el módulo provisional «Organización» de Administración y su permiso `operar`, tras comprobar que no tenía acciones adicionales ni concesiones individuales o de recursos. Su auditoría permanece; el gestor real de Organizaciones vive en el grupo fijo Insight. El catálogo aplicado contiene 4 grupos y 12 módulos.
+- [`scripts/020_survey_catalog.sql`](../scripts/020_survey_catalog.sql) registró **Encuestas / Encuestas** como grupo y módulo gestionables, enlazados a `/surveys`. El módulo consulta estudios, instrumentos, versiones y cuestionarios de `insight_survey`. El permiso `encuestas.operar` se conservó en los roles existentes que ya tenían `survey.access` y `survey.view`; las consultas vuelven a comprobar esos permisos por organización y respetan los recursos `survey` restringidos por instrumento. En la base inspeccionada al aplicar esta migración también persistía el módulo provisional `organizacion`, por lo que el catálogo observado suma 5 grupos y 14 módulos; esa discrepancia con el registro de la 019 queda pendiente de reconciliar por separado.
+- **Carga y consulta HCV 2025 (2026-09-29):** [`scripts/import-hcv-2025.js`](../scripts/import-hcv-2025.js) cargó en una transacción el estudio `HCV_PERCEPCION_2025` con los instrumentos A y B, 426 preguntas, 3,231 observaciones y 689,036 respuestas. La carga conserva los valores originales y corrige dos permutaciones verificadas de columnas en A; detalles y hashes en [`ENCUESTAS_HCV_2025.md`](ENCUESTAS_HCV_2025.md). La ruta `/surveys/[id]/responses` consulta observaciones paginadas de la versión actual y sus respuestas individuales con los permisos de organización y recurso del instrumento.
+- **Importaciones reutilizables (2026-09-29):** [`scripts/021_survey_import_jobs.sql`](../scripts/021_survey_import_jobs.sql) y [`scripts/022_serverless_survey_imports.sql`](../scripts/022_serverless_survey_imports.sql) se aplicaron como `insight_app`. `insight_survey.survey_import_jobs` guarda organización, creador, ruta de archivo privado, SHA-256, vista previa, asignación de columnas, ejecución de Workflow y estado; `source_bytes` permanece opcional para tareas antiguas. `survey_import_job_chunks` registra bloques transaccionales e idempotentes. `/surveys/imports` acepta TXT, CSV, XLSX, XLS, ODS y JSON, exige `survey.access` + `survey.create` y asigna códigos de pregunta `P###` por posición. Permite revisar hasta 25 valores distintos aleatorios por pregunta antes de confirmar, o hasta 10 si alguna respuesta supera siete palabras, además de eliminar cargas aún no procesadas. El contrato interno de mapeo se conserva para trabajos previos, pero la interfaz ya no lo edita. En hojas de cálculo solo se lee la primera hoja, sin diccionario. El navegador sube directamente al bucket privado `survey-imports` y una ejecución de Workflow de Vercel inicia bajo demanda; no hay trabajador residente. La versión se publica únicamente tras verificar todos los bloques. El remapeo especial de HCV A no se aplica automáticamente a cargas generales.
+- **Prefijos y códigos de encuestas (2026-10-02):** [`scripts/023_organization_prefix_survey_codes.sql`](../scripts/023_organization_prefix_survey_codes.sql) se aplicó como `insight_app` y se verificó en la base. `core_organizations.code_prefix` es único, obligatorio y contiene tres caracteres alfanuméricos mayúsculos; los existentes quedaron como HCV e INT. `survey_code_sequences` guarda dos contadores globales por organización, independientes para estudios e instrumentos, protegidos con RLS. `survey_import_jobs.version` guarda la versión completa con parte decimal (`1.0`, `1.542`, etc.). El formulario solicita solo el entero y el servidor genera los códigos y la versión `.0`; reutiliza estudios e instrumentos por nombre dentro de su organización y rechaza la misma versión de un instrumento existente o en carga. Los códigos históricos se conservan.
 - **Insight / Organizaciones** es un control fijo para sysadmin. Su API crea y edita `core_organizations`; el alta genera cinco roles de organización, da todos los permisos vigentes a Owner y el permiso `operar` a los demás roles. La cuenta maestra no se añade como miembro. El estado de la organización puede pasar por activa, inactiva, suspendida o archivada; el ID permanece estable.
 - Los estados vigentes de grupos y módulos gestionables son `apagado` (nadie, tampoco `sysadmin`), `desarrollo` (solo `sysadmin`) y `disponible` (usuarios con membresía activa y permiso `operar`). El grupo limita a sus módulos. La auditoría registra altas y cambios. Las tablas privadas tienen RLS activo y ningún acceso directo de `anon` ni `authenticated`; el gestor valida `sysadmin` antes de usar `insight_app`.
 - `iam_modules` agrupa permisos y comparte el código de cada módulo gestionable con `app_modules`. El catálogo `app_*` describe navegación y disponibilidad. Los módulos con página propia usan la ruta registrada en código; los nuevos sin implementación reciben `/workspace/[code]` como área de trabajo provisional. El menú y las guardas del catálogo evalúan `<code>.operar` por membresía activa: una excepción individual `deny` prevalece sobre el rol y `allow` concede acceso. Roles y Permisos se muestran en **Administración** según su estado, pero conservan acceso exclusivo de `sysadmin`; Componentes y Organizaciones siguen en el grupo fijo Insight.
@@ -70,7 +84,7 @@ y posteriormente:
 ```text
 Intersel Insight
 ├── Hermosillo ¿Cómo Vamos?
-├── Intercel
+├── Intersel
 ├── Organización X
 └── Organización Y
 ```
@@ -81,7 +95,7 @@ Además, el mismo software puede desplegarse independientemente:
 Instalación A
 Intersel Insight
 ├── Hermosillo ¿Cómo Vamos?
-└── Intercel
+└── Intersel
 
 Instalación B
 Intersel Insight
@@ -189,12 +203,12 @@ Después tiene memberships.
 Ejemplo:
 
 ```text
-Usuario: ana@intercel.com
+Usuario: ana@intersel.com
 
 Hermosillo ¿Cómo Vamos?
 └── Analista
 
-Intercel
+Intersel
 └── Administrador
 
 Cliente XYZ
@@ -372,11 +386,11 @@ Esto permite exactamente el escenario que definimos.
 
               ┌── Hermosillo ¿Cómo Vamos?
 Ana ──────────┤
-              └── Intercel
+              └── Intersel
 
 Carlos ────────── Hermosillo ¿Cómo Vamos?
 
-Juan ──────────── Intercel
+Juan ──────────── Intersel
 ```
 
 ---

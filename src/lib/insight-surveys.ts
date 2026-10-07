@@ -152,7 +152,7 @@ async function allowedOrganizations(actor: Awaited<ReturnType<typeof surveyActor
   return rows.filter((_, index) => checks[index]);
 }
 
-async function canViewResource(actor: Awaited<ReturnType<typeof surveyActor>>, organizationId: string, instrumentId: string) {
+export async function canViewSurveyResource(actor: { userId: string; admin: boolean }, organizationId: string, instrumentId: string) {
   if (actor.admin) return true;
   const rows = await queryRows<{ access_mode: string; effect: string | null }>(`select r.access_mode, grant_effect.effect
     from insight_iam.iam_resources r
@@ -187,7 +187,7 @@ export async function listSurveyNameChoices(): Promise<SurveyNameChoice[]> {
     where s.organization_id = any($1::uuid[])
     order by s.name, i.name`, [organizations.map((organization) => organization.id)]);
   const visible = await Promise.all(rows.map((row) => row.instrument_id
-    ? canViewResource(actor, row.organization_id, row.instrument_id) : true));
+    ? canViewSurveyResource(actor, row.organization_id, row.instrument_id) : true));
   return rows.filter((_, index) => visible[index]);
 }
 
@@ -226,14 +226,14 @@ export async function listSurveys(): Promise<{ organizations: SurveyOrganization
       and not exists (select 1 from insight_survey.survey_import_jobs j
         where j.id::text = i.metadata->>'import_job_id' and j.status <> 'completed')
     order by o.name, s.name, i.name`, [organizations.map((org) => org.id)]);
-  const visibility = await Promise.all(rows.map((row) => canViewResource(actor, row.organization_id, row.id)));
+  const visibility = await Promise.all(rows.map((row) => canViewSurveyResource(actor, row.organization_id, row.id)));
   const surveys = rows.filter((_, index) => visibility[index]);
   const studyIds = [...new Set(surveys.map((survey) => survey.study_id))];
   const instruments = studyIds.length ? await queryRows<{ id: string; study_id: string; organization_id: string }>(
     `select id, study_id, organization_id from insight_survey.survey_instruments where study_id = any($1::uuid[])`, [studyIds],
   ) : [];
   const [instrumentVisibility, deletePermissions] = await Promise.all([
-    Promise.all(instruments.map((instrument) => canViewResource(actor, instrument.organization_id, instrument.id))),
+    Promise.all(instruments.map((instrument) => canViewSurveyResource(actor, instrument.organization_id, instrument.id))),
     Promise.all(organizations.map(async (org) => {
       if (actor.admin) return true;
       const { data, error } = await actor.supabase.rpc("iam_has_permission", { p_org: org.id, p_code: "survey.delete" });
@@ -287,7 +287,7 @@ export async function getSurveyDetail(id: string, selectedVersionId?: string): P
       and not exists (select 1 from insight_survey.survey_import_jobs j
         where j.id::text = i.metadata->>'import_job_id' and j.status <> 'completed')`, [id, organizationIds]);
   const survey = rows[0];
-  if (!survey || !(await canViewResource(actor, survey.organization_id, survey.id))) notFound();
+  if (!survey || !(await canViewSurveyResource(actor, survey.organization_id, survey.id))) notFound();
   const versions = await queryRows<SurveyVersion>(`select iv.id, iv.version, iv.name, iv.status,
     (select count(*)::int from insight_survey.survey_questions q where q.instrument_version_id = iv.id) as question_count,
     (select count(*)::int from insight_survey.survey_observations obs where obs.instrument_version_id = iv.id) as observation_count
@@ -348,7 +348,7 @@ export async function deleteSurveyVersions(instrumentId: string, versionIds: str
       where i.id = $1 and i.organization_id = any($2::uuid[])
       for update`, [instrumentId, organizations.map((org) => org.id)]);
     const organizationId = rows.rows[0]?.organization_id as string | undefined;
-    if (!organizationId || !(await canViewResource(actor, organizationId, instrumentId))) {
+    if (!organizationId || !(await canViewSurveyResource(actor, organizationId, instrumentId))) {
       throw new Error("No tienes acceso a este cuestionario.");
     }
     if (typeof confirmName !== "string" || confirmName.trim() !== rows.rows[0].name) {
@@ -409,7 +409,7 @@ export async function deleteSurveyStudy(studyId: string, confirmName: string): P
       [studyId, study.organization_id],
     );
     const instrumentRows = instruments.rows as { id: string }[];
-    const visibility = await Promise.all(instrumentRows.map((instrument) => canViewResource(actor, study.organization_id, instrument.id)));
+    const visibility = await Promise.all(instrumentRows.map((instrument) => canViewSurveyResource(actor, study.organization_id, instrument.id)));
     if (visibility.some((visible) => !visible)) throw new Error("No tienes acceso a todos los instrumentos de este estudio.");
     const active = await client.query(
       `select 1 from insight_survey.survey_import_jobs

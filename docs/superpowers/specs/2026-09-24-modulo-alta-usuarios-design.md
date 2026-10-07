@@ -1,6 +1,6 @@
 # Módulo de alta de usuarios — Diseño
 
-> **Diseño histórico, no contrato vigente.** Confirma sus endpoints, permisos, RPCs y estado implementado en el código antes de usarlo. El modelo objetivo multi-organización está en [`../../../ARQUITECTURA_BBDD.md`](../../../ARQUITECTURA_BBDD.md); consulta [`../../MAPA_MODULOS.md`](../../MAPA_MODULOS.md) para el estado de los módulos.
+> **Diseño histórico, no contrato vigente.** Confirma sus endpoints, permisos, RPCs y estado implementado en el código antes de usarlo. El modelo objetivo multi-organización está en [`ARQUITECTURA_BBDD.md`](../../ARQUITECTURA_BBDD.md); consulta [`MAPA_MODULOS.md`](../../MAPA_MODULOS.md) para el estado de los módulos.
 
 **Fecha:** 2026-09-24 · **Estado:** pendiente de revisión del usuario
 **Base:** `ARQUITECTURA_BBDD.md` (mismo modelo que `C:\Users\chesh\Files\GitApps\temikia-app\docs\ARQUITECTURA_BBDD_RBAC.md`),

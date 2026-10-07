@@ -20,7 +20,8 @@ const env = {
 
 if (!env.NODE_EXTRA_CA_CERTS && caFile && existsSync(caFile)) env.NODE_EXTRA_CA_CERTS = caFile;
 
-const next = spawn(process.execPath, [require.resolve("next/dist/bin/next"), "dev", "--experimental-https", "--port", port], {
+const bundlerArgs = process.env.INSIGHT_DEV_BUNDLER === "turbopack" ? [] : ["--webpack"];
+const next = spawn(process.execPath, [require.resolve("next/dist/bin/next"), "dev", ...bundlerArgs, "--experimental-https", "--port", port], {
   env,
   stdio: "inherit",
 });
