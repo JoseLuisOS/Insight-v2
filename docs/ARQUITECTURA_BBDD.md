@@ -4,6 +4,21 @@
 
 Para las relaciones implementadas de Encuestas y su lectura analítica, consulta [`MAPA_DATOS_ENCUESTAS.md`](MAPA_DATOS_ENCUESTAS.md). El ejemplo `survey_surveys` de §18 es conceptual y no representa las tablas vigentes.
 
+## Índice rápido
+
+Documento extenso (≈42 KB): **no lo leas completo**. Ubica la sección con `rg -n "^#{1,2} " docs/ARQUITECTURA_BBDD.md` y léela con `offset`/`limit`.
+
+- **Qué existe hoy en la base:** «Estado aplicado de la base de datos» (schemas, tablas, RPC, roles de conexión) y «Gráficas v2: base aplicada» (migraciones 024–028).
+- **Organizaciones y usuarios:** §1 Separación conceptual, §2 Estructura superior, §3 `core_organizations`, §4 Usuarios, §6 Memberships.
+- **Sysadmin y roles administrativos:** §5 Sysadmin, §26 Roles administrativos.
+- **Roles y permisos:** §7 Roles, §8 Membership ↔ Roles, §9 Catálogo de módulos, §10 Permisos, §11 Role Permissions, §12 Overrides por usuario, §13 Resolución de permisos, §29 Modelo de autorización resultante.
+- **Recursos y ACL:** §14 Permisos sobre recursos, §15 ACL, §16 Dos tipos de permiso, §17 `access_mode`.
+- **Aislamiento y RLS:** §19 Regla fundamental de datos, §20 Contaminación entre organizaciones, §21 Índices, §22 RLS, §23 RLS y permisos.
+- **Encuestas:** §18 Conexión con `survey_*`, §24 Migración de `survey_*`; relaciones implementadas en [`MAPA_DATOS_ENCUESTAS.md`](MAPA_DATOS_ENCUESTAS.md).
+- **Alcance y evolución:** §25 Organigrama final, §27 Lo que no se construye todavía, §28 Disclaimer técnico.
+
+Al agregar una sección o un estado aplicado nuevo, añádelo a este índice.
+
 ## Gráficas v2: base aplicada
 
 La inspección de PostgreSQL del 2026-10-06 con el rol `insight_app` confirmó que en la base conectada existen `insight_core.core_organizations` e `insight_survey.survey_observations`, pero **no existen tablas de usuario en `public`**. En particular, `public.datasets`, `public.charts`, `public.dashboards`, `public.publications` y `public.snapshots` de las migraciones v1 no están presentes allí. Esto describe esa conexión, no demuestra qué datos puede haber en otra instalación de v1.

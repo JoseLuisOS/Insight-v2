@@ -1,5 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { describeError, logEvent, logPath } from "@/lib/server-log";
+import { authFetchWithTimeout } from "./fetch-timeout";
 
 /**
  * Refreshes the Supabase auth session on every matched request and guards
@@ -18,17 +20,7 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      global: {
-        // Session refresh and JWKS requests must not hold every navigation
-        // through Node's much longer default network timeout.
-        fetch: (input, init) => fetch(input, {
-          ...init,
-          signal: AbortSignal.any([
-            ...(init?.signal ? [init.signal] : []),
-            AbortSignal.timeout(5000),
-          ]),
-        }),
-      },
+      global: { fetch: authFetchWithTimeout(5000) },
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -58,11 +50,12 @@ export async function updateSession(request: NextRequest) {
   const { data, error, timedOut } = authResult;
   const claims = data?.claims;
   const authDuration = Math.round(performance.now() - started);
+  const { pathname } = request.nextUrl;
+  // Local JWT verification takes a few milliseconds; more means a network call.
   if (authDuration >= 250) {
-    console.warn(`[SLOW] proxy.claims request_id=${requestId} duration_ms=${authDuration} path=${request.nextUrl.pathname.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, ":id")}`);
+    await logEvent("SLOW", "proxy.claims", { request_id: requestId, duration_ms: authDuration, path: logPath(pathname), alg: data?.header?.alg });
   }
 
-  const { pathname } = request.nextUrl;
   const isPublic =
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
@@ -83,7 +76,7 @@ export async function updateSession(request: NextRequest) {
   };
 
   if (timedOut || error?.name === "AuthRetryableFetchError") {
-    console.error(`[ERROR] proxy.claims_unavailable request_id=${requestId} duration_ms=${authDuration} timed_out=${timedOut} path=${pathname.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, ":id")}`);
+    await logEvent("ERROR", "proxy.claims_unavailable", { request_id: requestId, duration_ms: authDuration, timed_out: timedOut, path: logPath(pathname), ...(error ? describeError(error) : {}) });
     const unavailable = new NextResponse("No se pudo validar la sesión. Intenta de nuevo.", { status: 503 });
     response.cookies.getAll().forEach((cookie) => unavailable.cookies.set(cookie));
     unavailable.headers.set("x-insight-request-id", requestId);

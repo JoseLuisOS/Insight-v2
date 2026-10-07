@@ -1,0 +1,9 @@
+# Patrón local: permisos Insight
+
+- La vista conserva la jerarquía **grupo → módulo → acción** con totales en la cabecera, filtros y búsqueda, grupos plegables y tabla de acciones por módulo. Usa los tokens semánticos del tema de Insight.
+- En el catálogo de permisos, cada grupo tiene una cabecera con icono, posición, nombre y conteo; sus módulos aparecen en tarjetas internas con nombre, identificador y tabla de permisos. La acción `operar` se distingue con un indicador discreto; los IDs usan tipografía monoespaciada y las acciones de fila mantienen controles accesibles.
+- Los grupos aparecen colapsados al entrar. Sus cabeceras siguen el gradiente sutil azul/turquesa de las superficies compartidas y adaptan la tinta al tema.
+- Los filtros usan menús multiselección con iconos Lucide y contador. Sus opciones se derivan de los permisos disponibles y se encadenan **grupo → módulo → acción**; no ofrezcas valores que no existan en los datos. Incluye un botón para limpiar filtros.
+- El buscador se abre en línea y gana ancho con transición; al abrirse, los filtros se compactan a iconos. Al cerrarlo, el buscador limpia su texto y los filtros recuperan sus etiquetas. El botón «Nuevo permiso» permanece inmediatamente junto al buscador.
+- «Nuevo permiso» despliega el formulario dentro de la página, como en BAIOS. Las acciones disponibles aparecen como botones del mismo estilo; permiten selección múltiple y no se sustituyen por checkboxes ni por un menú. Solo se ofrecen `crear`, `editar`, `eliminar` y `exportar` cuando el módulo aún no las tiene.
+- `operar` es un permiso base automático: se muestra en la tabla, puede tener descripción, pero no se ofrece para alta ni eliminación. La eliminación de otras acciones exige confirmación y explica que también elimina asignaciones existentes.

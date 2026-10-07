@@ -15,7 +15,7 @@ Este resumen separa la intención expresada por el usuario de las propuestas his
 ## Estado que condiciona Gráficas v2
 
 - El [mapa de Encuestas](MAPA_DATOS_ENCUESTAS.md) muestra estudio → instrumento → versión → preguntas/variables y observaciones → respuestas/selecciones. La observación es la unidad de registro; una respuesta no equivale a una persona.
-- El [módulo Gráficas](MAPA_MODULOS.md#7-visualización-gráficas-mapas-y-métricas--v1) conserva `charts.dataset_id`, filas de dataset y configuración de ejes. Sus consumidores incluyen dashboards y publicación. El listado actual no filtra por `created_by`; la política de lectura versionada de v1 permite a los miembros del tenant leer sus gráficas. El estado aplicado de esa política en la base actual no se ha verificado. La privacidad indicada para v2 exige revisar esta brecha.
+- El [módulo Gráficas](modulos/visualizacion.md) conserva `charts.dataset_id`, filas de dataset y configuración de ejes. Sus consumidores incluyen dashboards y publicación. El listado actual no filtra por `created_by`; la política de lectura versionada de v1 permite a los miembros del tenant leer sus gráficas. El estado aplicado de esa política en la base actual no se ha verificado. La privacidad indicada para v2 exige revisar esta brecha.
 - El [plan v1](PLAN.md) y el [manual v1](MANUAL.md) articulan análisis, visualización y publicación como propuesta de producto. Sus detalles de tenencia, seguridad, despliegue y roadmap son históricos. Las capacidades concretas a conservar deben verificarse en el código y definirse en la especificación nueva.
 
 ## Decisiones para Gráficas v2

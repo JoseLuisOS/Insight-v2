@@ -4,14 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Boxes, Check, ChevronRight, CircleDashed, Layers3, Pencil, Plus, ShieldCheck, Sparkles, X } from "lucide-react";
 import { NAV_ICONS, NavIcon } from "@/components/navigation/nav-icon";
-import { iconNames as LUCIDE_ICON_NAMES } from "lucide-react/dynamic";
+import { findLucideIcon, loadLucideIcons } from "@/components/navigation/lucide-icons";
 import { StateGauge } from "@/components/insight/state-gauge";
 import type { CatalogGroup, CatalogModule, State } from "@/lib/insight-catalog";
 import { catalogCodeFromName, normalizeLucideIconName } from "@/lib/catalog-code";
 
 const STATES: State[] = ["apagado", "desarrollo", "disponible"];
 const ICON_NAMES = Object.keys(NAV_ICONS).sort();
-const VALID_LUCIDE_ICON_NAMES = new Set<string>(LUCIDE_ICON_NAMES);
 const STATE_DETAILS: Record<State, { label: string; hint: string; dot: string; badge: string }> = {
   apagado: { label: "Apagado", hint: "Nadie puede acceder", dot: "bg-slate-400", badge: "bg-slate-500/10 text-slate-500 ring-slate-500/20" },
   desarrollo: { label: "Desarrollo", hint: "Solo sysadmin", dot: "bg-amber-400", badge: "bg-amber-500/10 text-amber-600 ring-amber-500/20" },
@@ -173,11 +172,12 @@ function CatalogDialog({ editing, groups, selectedGroupCode, onClose, onSaved }:
   const [error, setError] = useState<string | null>(null);
   const generatedCode = row?.code ?? catalogCodeFromName(name);
 
-  function validateOtherIcon() {
+  async function validateOtherIcon() {
     const candidate = otherIcon.trim();
     if (!candidate) { setIconValidation("invalid"); return; }
     const normalized = normalizeLucideIconName(candidate);
-    if (VALID_LUCIDE_ICON_NAMES.has(normalized)) {
+    const lib = await loadLucideIcons().catch(() => null);
+    if (lib && findLucideIcon(lib, normalized)) {
       setOtherIcon(normalized);
       setIcon(normalized);
       setIconValidation("valid");

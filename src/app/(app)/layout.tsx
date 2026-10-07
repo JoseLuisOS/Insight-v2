@@ -21,6 +21,7 @@ import { getViewedUser } from "@/lib/view-as";
 import { ViewAsBanner } from "@/components/insight/view-as-banner";
 import { logDuration, startTiming } from "@/lib/server-log";
 import { NavigationPerformance } from "@/components/navigation/navigation-performance";
+import { NavigationLoader } from "@/components/navigation/navigation-loader";
 import { getSessionUser } from "@/lib/session-user";
 
 function parseCollapsed(raw: string | undefined): Record<string, boolean> {
@@ -113,9 +114,12 @@ export default async function AppLayout({
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             {viewedUser && <ViewAsBanner identifier={viewedUser.email ?? viewedUser.name} organization={viewedUser.organizationName} />}
             <PanelHeader nav={nav} />
-            <main className="min-h-0 flex-1 overflow-y-auto">
-              <PanelReloadBoundary className="px-6 py-8">{children}</PanelReloadBoundary>
-            </main>
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              <main className="min-h-0 flex-1 overflow-y-auto">
+                <PanelReloadBoundary className="px-6 py-8">{children}</PanelReloadBoundary>
+              </main>
+              <NavigationLoader />
+            </div>
             <MobileModuleBar nav={nav} />
           </div>
         </div>

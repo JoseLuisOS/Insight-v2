@@ -1,18 +1,33 @@
 # Instrucciones del repositorio
 
-## Orientación eficiente
+## Protocolo de lectura (obligatorio)
 
-- Antes de tocar código, empieza por [`docs/MAPA_MODULOS.md`](docs/MAPA_MODULOS.md). Úsalo para localizar el componente, versión, archivo principal y dependencias inmediatas; después confirma el comportamiento en el código.
-- Para contexto documental, usa el [índice de `docs/`](docs/README.md) y lee solo las referencias indicadas para la tarea; no recorras todos los Markdown de `docs/` por rutina.
-- Inspecciona primero el archivo afectado y sus imports, usos y dependencias inmediatas con búsquedas dirigidas (`rg`). No recorras todo el repositorio si el cambio está acotado.
-- Trata los demás documentos existentes como referencias no verificadas: pueden estar desactualizados. No los uses como contrato de comportamiento sin corroborar sus afirmaciones en el código o en una fuente que el usuario haya designado como vigente.
-- Para el modelo objetivo de producto y datos, el usuario designó [`docs/ARQUITECTURA_BBDD.md`](docs/ARQUITECTURA_BBDD.md) como referencia. El producto será multi-organización, no multitenant: una instalación equivale a un deployment y puede alojar varias organizaciones; `organization_id` delimita pertenencia y aislamiento de datos. Distingue este objetivo del estado implementado, que debes verificar en el código.
-- La base aplicada usa `insight_core`, `insight_iam` e `insight_survey`; `auth` sigue administrado por Supabase. Antes de cambiar SQL, consulta el estado aplicado de `docs/ARQUITECTURA_BBDD.md`; después de una migración verificada, actualiza allí la arquitectura y el mapa. Actualiza también `docs/ARQUITECTURA_BBDD.md` cuando cambie el modelo objetivo o el contrato de datos, aunque no haya una migración aplicada. `scripts/run-sql.js` usa `insight_app` por defecto y solo usa `postgres` con `--admin` explícito.
-- `../intersel-insight` es la primera versión y debe tratarse como referencia de comparación de solo lectura; no modificarla ni copiar su implementación sin adaptarla al modelo objetivo. El mapa marca el linaje actual de módulos como v1 o v2.
-- Evita cargar archivos completos cuando basten símbolos, fragmentos o resultados de búsqueda. Amplía el contexto solo cuando una dependencia inmediata lo requiera.
-- Al cambiar arquitectura, límites entre módulos o flujos, actualiza el mapa de módulos para que siga siendo un punto de entrada confiable.
-- Si agregas, quitas o reubicas un componente, ruta o servicio, actualiza el mapa en el mismo cambio.
-- Existe una bitácora de referencia en [`docs/BITACORA.md`](docs/BITACORA.md). Consúltala si el historial es relevante; al cerrar cambios de código o documentación de producto, agrega una entrada breve con listas bajo **¿Qué?**, **¿Por qué?** y **¿Para qué?**. No uses tablas ni repitas el diff.
+Lee solo lo necesario, en este orden. Los documentos grandes nunca se leen completos.
+
+| Necesitas | Lee | Nunca |
+| --- | --- | --- |
+| Ubicar código | [`docs/MAPA_MODULOS.md`](docs/MAPA_MODULOS.md) (índice, ~4 KB) → una ficha de `docs/modulos/` → `rg` del símbolo → fragmentos con `offset`/`limit` | todas las fichas; archivos completos cuando basta un fragmento |
+| Ir de una URL a su código | [`docs/modulos/rutas.md`](docs/modulos/rutas.md) | recorrer `src/app/` |
+| Datos, SQL, IAM u organizaciones | «Índice rápido» de [`docs/ARQUITECTURA_BBDD.md`](docs/ARQUITECTURA_BBDD.md) → la sección con `rg -n "^#{1,2} "` + `offset`/`limit` | el documento completo (~42 KB) |
+| Interfaz | [`.claude/skills/insight-ux-ui/SKILL.md`](.claude/skills/insight-ux-ui/SKILL.md) + solo `patrones/<pantalla>.md` | los patrones de otras pantallas |
+| El porqué de una decisión | `rg` sobre `docs/BITACORA.md docs/bitacora/` | la bitácora completa |
+| Otro documento | la fila de la tarea en [`docs/README.md`](docs/README.md) | recorrer `docs/` o los históricos por rutina |
+
+- El código es la evidencia del comportamiento; los demás Markdown son referencias no verificadas hasta contrastarlas. Confirma en el archivo afectado, sus imports y consumidores inmediatos.
+- No releas lo que ya está en la conversación ni lo que acabas de editar. Filtra la salida de comandos y logs (`rg`, `tail`, `--stat`).
+
+## Modelo y fuentes
+
+- El producto es **multi-organización, no multitenant**: una instalación equivale a un deployment y puede alojar varias organizaciones; `organization_id` delimita pertenencia y aislamiento. El usuario designó [`docs/ARQUITECTURA_BBDD.md`](docs/ARQUITECTURA_BBDD.md) como referencia del modelo objetivo. El código aún tiene contratos heredados (`tenant_id`, `profiles`, `tenants`): distingue el objetivo del estado que implementa el archivo que cambias.
+- La base aplicada usa `insight_core`, `insight_iam` e `insight_survey`; `auth` sigue administrado por Supabase. Antes de cambiar SQL, consulta «Estado aplicado» de `ARQUITECTURA_BBDD.md`; tras una migración verificada, actualízalo, igual que cuando cambie el modelo o el contrato de datos. `scripts/run-sql.js` usa `insight_app` por defecto y `postgres` solo con `--admin` explícito. No asumas que una migración está aplicada porque exista en el repositorio.
+- `../intersel-insight` es la primera versión: referencia de comparación de solo lectura; no la modifiques ni copies su implementación sin adaptarla al modelo objetivo.
+- No copies credenciales ni valores de `.env` a código, respuestas o documentación.
+
+## Desarrollo y documentación
+
+- Flujo de trabajo, reparto entre modelos y buenas prácticas: [`.claude/skills/insight-dev/SKILL.md`](.claude/skills/insight-dev/SKILL.md).
+- Al agregar, quitar o mover un componente, ruta o servicio, actualiza en el mismo cambio su ficha en `docs/modulos/`, su fila en `docs/MAPA_MODULOS.md` y, si es una URL, `docs/modulos/rutas.md`.
+- Al cerrar cambios de código o documentación de producto, agrega al final de [`docs/BITACORA.md`](docs/BITACORA.md) una entrada breve con listas bajo **¿Qué?**, **¿Por qué?** y **¿Para qué?**, leyendo solo sus últimas líneas. Sin tablas ni diff.
 
 ## Next.js
 
@@ -20,4 +35,4 @@ Esta aplicación usa la versión de Next.js declarada en `package.json`. Antes d
 
 ## UX/UI
 
-Cuando la tarea afecte la interfaz, consulta [`.claude/skills/insight-ux-ui/SKILL.md`](.claude/skills/insight-ux-ui/SKILL.md) para las decisiones visuales e interactivas vigentes. Actualiza esa skill solo al agregar, cambiar o retirar decisiones de UX/UI; no la uses para tareas exclusivas de datos, API o infraestructura.
+Cuando la tarea afecte la interfaz, aplica [`.claude/skills/insight-ux-ui/SKILL.md`](.claude/skills/insight-ux-ui/SKILL.md) y el patrón de la pantalla tocada. Actualiza esa skill solo al agregar, cambiar o retirar decisiones de UX/UI; no la uses para tareas exclusivas de datos, API o infraestructura.

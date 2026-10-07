@@ -2,7 +2,7 @@
 
 **Estado:** respuestas y aclaraciones cerradas el 2026-10-06. Las respuestas originales se conservan abajo; las precisiones posteriores están en «Aclaraciones resueltas». La propuesta técnica está en [ESPECIFICACION_GRAFICAS_V2.md](ESPECIFICACION_GRAFICAS_V2.md).
 
-Contexto: [intención del producto](CONTEXTO_PRODUCTO.md), [modelo de Encuestas](MAPA_DATOS_ENCUESTAS.md), [Gráficas v1 en el mapa](MAPA_MODULOS.md#7-visualización-gráficas-mapas-y-métricas--v1).
+Contexto: [intención del producto](CONTEXTO_PRODUCTO.md), [modelo de Encuestas](MAPA_DATOS_ENCUESTAS.md), [Gráficas v1 en el mapa](modulos/visualizacion.md).
 
 ## 1. Primera entrega útil
 
