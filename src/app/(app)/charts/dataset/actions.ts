@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { insightDb } from "@/lib/insight-db";
 import { chartActor, getCoreDataset, getCoreChartMap } from "@/lib/chart-v2-datasets";
 import type { ChartConfig } from "@/lib/charts";
+import type { ChartVisibility } from "@/lib/chart-snapshot";
+import { datasetSnapshot } from "@/lib/chart-snapshot";
 
 type DatasetChartDefinition = { version: 2; source: { kind: "dataset"; datasetId: string }; chart: ChartConfig };
 const chartTypes = new Set(["kpi","bar","line","area","pie","table","map","scatter","histogram","boxplot"]);
@@ -27,26 +29,30 @@ async function validConfig(config: ChartConfig, columns: string[], organizationI
   return true;
 }
 
-export async function saveCoreDatasetChart(datasetId: string, name: string, config: ChartConfig, chartId?: string): Promise<{ chartId: string } | { error: string }> {
+export async function saveCoreDatasetChart(datasetId: string, name: string, config: ChartConfig, chartId?: string, visibility?: ChartVisibility): Promise<{ chartId: string } | { error: string }> {
   const actor = await chartActor();
-  const data = await getCoreDataset(datasetId, 1);
+  const data = await getCoreDataset(datasetId);
   if (typeof name !== "string" || !name.trim() || name.trim().length > 160) return { error: "Nombre no válido." };
   const saved = definition(datasetId, config);
   if (!(await validConfig(config, data.columns, data.organization_id))) return { error: "Campos o mapa no válidos para este dataset." };
+  let preview: string | null = null;
+  try { preview = JSON.stringify(datasetSnapshot(config, data.rows)); } catch { /* la vista previa no bloquea el guardado */ }
   if (chartId) {
     const result = await insightDb().query(`update insight_core.core_charts
-      set name = $1, definition_json = $2::jsonb, updated_at = now()
-      where id = $3 and organization_id = $4 and source_id = $5 and source_kind = 'dataset' and created_by = $6 returning id`,
-      [name.trim(), JSON.stringify(saved), chartId, data.organization_id, datasetId, actor.userId]);
-    if (!result.rowCount) return { error: "Gráfica no encontrada." };
+      set name = $1, definition_json = $2::jsonb, preview_json = $7::jsonb, preview_updated_at = now(), updated_at = now(),
+        source_kind = 'dataset', source_id = $5, source_version_id = null
+      where id = $3 and organization_id = $4 and created_by = $6 returning id`,
+      [name.trim(), JSON.stringify(saved), chartId, data.organization_id, datasetId, actor.userId, preview]);
+    if (!result.rowCount) return { error: "Gráfica no encontrada, sin permiso o con una fuente de otra organización." };
     revalidatePath(`/charts/dataset/${chartId}`);
+    revalidatePath(`/charts/survey/${chartId}`);
     revalidatePath("/charts");
     return { chartId };
   }
   const created = await insightDb().query(`insert into insight_core.core_charts
-    (organization_id, source_kind, source_id, name, definition_json, created_by)
-    values ($1, 'dataset', $2, $3, $4::jsonb, $5) returning id`,
-    [data.organization_id, datasetId, name.trim(), JSON.stringify(saved), actor.userId]);
+    (organization_id, source_kind, source_id, name, definition_json, created_by, preview_json, preview_updated_at, visibility)
+    values ($1, 'dataset', $2, $3, $4::jsonb, $5, $6::jsonb, now(), $7) returning id`,
+    [data.organization_id, datasetId, name.trim(), JSON.stringify(saved), actor.userId, preview, visibility === "organization" ? "organization" : "private"]);
   revalidatePath("/charts");
   return { chartId: created.rows[0].id as string };
 }

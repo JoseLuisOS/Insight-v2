@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function ChartDatasetUpload({ organizations }: { organizations: { id: string; name: string }[] }) {
+export function ChartDatasetUpload({ organizations, onUploaded, compact }: {
+  organizations: { id: string; name: string }[];
+  onUploaded?: (dataset: { id: string; name: string; organizationId: string }) => void;
+  compact?: boolean;
+}) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [organizationId, setOrganizationId] = useState(organizations[0]?.id ?? "");
@@ -12,6 +16,7 @@ export function ChartDatasetUpload({ organizations }: { organizations: { id: str
   const [busy, setBusy] = useState(false);
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const formElement = event.currentTarget;
     if (!file) { setError("Selecciona un archivo."); return; }
     if (file.size > 4_000_000) { setError("El archivo debe medir hasta 4 MB."); return; }
     setBusy(true); setError("");
@@ -23,13 +28,18 @@ export function ChartDatasetUpload({ organizations }: { organizations: { id: str
       const response = await fetch("/api/charts/datasets", { method: "POST", body: form });
       const body = await response.json().catch(() => ({ error: "El servidor rechazó el archivo. Comprueba que mida hasta 4 MB." }));
       if (!response.ok) throw new Error(body.error || "No se pudo cargar el archivo.");
-      router.push(`/charts/dataset/new?dataset=${body.datasetId}`);
-      router.refresh();
+      if (onUploaded) {
+        onUploaded({ id: body.datasetId, name, organizationId });
+        setName(""); setFile(null); formElement.reset();
+      } else {
+        router.push(`/charts/new?dataset=${body.datasetId}`);
+        router.refresh();
+      }
     } catch (cause) { setError(cause instanceof Error ? cause.message : "No se pudo cargar el archivo."); }
     finally { setBusy(false); }
   };
-  return <form onSubmit={submit} className="mt-6 space-y-4 rounded-xl border border-border bg-card p-5">
-    <h2 className="font-semibold">Cargar dataset plano</h2>
+  return <form onSubmit={submit} className={compact ? "space-y-4" : "mt-6 space-y-4 rounded-xl border border-border bg-card p-5"}>
+    {!compact && <h2 className="font-semibold">Cargar dataset plano</h2>}
     <p className="text-xs text-muted-foreground">CSV, TSV o TXT con encabezados. Hasta 4 MB y 50,000 registros.</p>
     <div><label className="mb-1 block text-sm" htmlFor="dataset-name">Nombre</label><input id="dataset-name" required maxLength={160} value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></div>
     <div><label className="mb-1 block text-sm" htmlFor="dataset-organization">Organización</label><select id="dataset-organization" value={organizationId} onChange={(event) => setOrganizationId(event.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">

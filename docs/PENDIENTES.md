@@ -18,3 +18,13 @@ Este archivo reúne ideas que el usuario dejó para una etapa posterior. Se agre
 - Ampliar el catálogo más allá de dispersión, histograma y boxplot según necesidades analíticas concretas.
 - Evaluar un adaptador G2 para tipos donde demuestre ventajas sobre ECharts, antes de añadir otra dependencia de renderizado.
 - Evaluar [D3.js](https://d3js.org/) para visualizaciones especiales que requieran construir geometría o interacción a medida; compararlo con ECharts y G2 mediante un caso concreto antes de integrarlo.
+
+## Visualización — módulos heredados de v1
+
+**Origen:** solicitud del usuario del 2026-10-07, tras la galería de Gráficas y Dashboards. **Estado:** por definir; son pantallas de v1 que leen tablas `public` que ya no existen en la base conectada.
+
+- Mapas (`/maps`): convertirlo en biblioteca de mapas GeoJSON de la organización sobre `insight_core.core_chart_maps`, usable desde el editor de Gráficas.
+- Temas (`/themes`): convertirlo en paletas de la organización en v2 (requiere tabla nueva) y ofrecerlas en el editor.
+- Dashboards: visibilidad dentro de la organización (como en Gráficas) y vista de solo lectura para el equipo.
+- `/charts/new?dataset=…`, `/charts/[id]` y `/charts/[id]/edit`: retirar el editor y visor heredados.
+- Compartir dispersiones de Dataset: hoy la instantánea guarda hasta 600 puntos individuales; decidir si se permite, se agrega en celdas o se bloquea.

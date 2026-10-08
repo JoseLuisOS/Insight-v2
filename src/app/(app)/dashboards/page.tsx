@@ -1,75 +1,58 @@
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { createDashboardV2 } from "./v2/actions";
-import { listDashboardsV2 } from "@/lib/dashboard-v2";
+import type { Metadata } from "next";
+import { listDashboardGallery } from "@/lib/chart-gallery";
 import { chartOrganizations } from "@/lib/chart-v2-datasets";
+import { DashboardGallery } from "@/components/charts/dashboard-gallery";
+import { NewDashboardButton } from "@/components/charts/new-dashboard-dialog";
+
+export const metadata: Metadata = { title: "Dashboards · Galería · Intersel Insight" };
+
+function EmptyIllustration() {
+  return (
+    <svg viewBox="0 0 240 150" role="img" aria-label="Cuadrícula de cuatro paneles con gráficas" className="mx-auto mb-6 h-36 w-auto">
+      <rect x="8" y="8" width="108" height="64" rx="8" className="fill-muted stroke-border" />
+      <g className="text-primary" fill="currentColor">
+        <rect x="24" y="44" width="12" height="18" rx="2" /><rect x="44" y="32" width="12" height="30" rx="2" />
+        <rect x="64" y="38" width="12" height="24" rx="2" /><rect x="84" y="24" width="12" height="38" rx="2" />
+      </g>
+      <rect x="124" y="8" width="108" height="64" rx="8" className="fill-muted stroke-border" />
+      <polyline points="138,58 160,40 182,48 204,24 220,30" fill="none" stroke="currentColor" strokeWidth="3"
+        strokeLinecap="round" strokeLinejoin="round" className="text-accent-teal" />
+      <rect x="8" y="80" width="108" height="62" rx="8" className="fill-muted stroke-border" />
+      <g className="text-accent-violet" fill="none" stroke="currentColor" strokeWidth="12">
+        <circle cx="62" cy="111" r="18" strokeOpacity="0.35" />
+        <circle cx="62" cy="111" r="18" strokeDasharray="70 114" transform="rotate(-90 62 111)" />
+      </g>
+      <rect x="124" y="80" width="108" height="62" rx="8" className="fill-muted stroke-border" />
+      <g className="text-primary" fill="currentColor">
+        <rect x="142" y="98" width="48" height="8" rx="4" opacity="0.5" /><rect x="142" y="114" width="72" height="14" rx="4" />
+      </g>
+    </svg>
+  );
+}
 
 export default async function DashboardsPage() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("dashboards")
-    .select("id, name, created_at, dashboard_items(count)")
-    .order("created_at", { ascending: false });
-
-  const dashboards =
-    (data as { id: string; name: string; dashboard_items: { count: number }[] }[] | null) ?? [];
-  const [newDashboards, organizations] = await Promise.all([listDashboardsV2(), chartOrganizations()]);
+  const [dashboards, organizations] = await Promise.all([listDashboardGallery(), chartOrganizations()]);
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="mx-auto w-full max-w-[1400px] px-1 pb-10">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Dashboards</h1>
-          <p className="mt-1 text-muted-foreground">Tableros con varias gráficas y filtros.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Dashboards</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Tableros que reúnen tus gráficas con filtros compartidos.</p>
         </div>
-        <form action={createDashboardV2} className="flex flex-wrap gap-2">
-          <select name="organizationId" required className="rounded-md border border-input bg-background px-3 py-2 text-sm">
-            {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
-          </select>
-          <input
-            name="name"
-            placeholder="Nombre del dashboard"
-            className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-          />
-          <button
-            type="submit"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-          >
-            + Crear
-          </button>
-        </form>
+        {dashboards.length > 0 && <NewDashboardButton organizations={organizations} />}
       </div>
-
-      {dashboards.length === 0 && newDashboards.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-muted/40 p-12 text-center">
-          <p className="text-sm font-medium text-foreground">Aún no tienes dashboards</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Crea uno y agrega tus gráficas en un grid.
+      {dashboards.length === 0 ? (
+        <div className="rounded-3xl border border-border bg-card px-6 py-14 text-center">
+          <EmptyIllustration />
+          <h2 className="text-xl font-semibold text-foreground">Reúne tus gráficas en un tablero</h2>
+          <p className="mx-auto mb-6 mt-2 max-w-md text-sm text-muted-foreground">
+            Combina gráficas de encuestas y datasets, ordénalas en una cuadrícula y filtra todo a la vez.
           </p>
+          <NewDashboardButton organizations={organizations} variant="hero" label="Crear mi primer dashboard" />
         </div>
-      ) : (<>
-        {!!newDashboards.length && <section className="mb-8"><h2 className="mb-3 text-lg font-semibold">Dashboards v2</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{newDashboards.map((dashboard) => <Link
-            key={dashboard.id} href={`/dashboards/v2/${dashboard.id}`}
-            className="rounded-xl border border-border bg-card p-5 hover:border-primary">
-            <div className="font-medium">{dashboard.name}</div><div className="mt-2 text-sm text-muted-foreground">{dashboard.organization_name} · {dashboard.chart_count} gráficas</div>
-          </Link>)}</div></section>}
-        {!!dashboards.length && <section><h2 className="mb-3 text-lg font-semibold">Dashboards heredados</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {dashboards.map((d) => (
-            <Link
-              key={d.id}
-              href={`/dashboards/${d.id}`}
-              className="rounded-xl border border-border bg-card p-5 transition hover:border-primary"
-            >
-              <div className="font-medium text-card-foreground">{d.name}</div>
-              <div className="mt-2 text-sm text-muted-foreground">
-                {d.dashboard_items?.[0]?.count ?? 0} gráficas
-              </div>
-            </Link>
-          ))}
-        </div></section>}
-      </>
+      ) : (
+        <DashboardGallery dashboards={dashboards} />
       )}
     </div>
   );

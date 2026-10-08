@@ -8,6 +8,8 @@ import { insightDb } from "@/lib/insight-db";
 import { analyzeSurveyChart, surveyChartContext } from "@/lib/insight-charts";
 import { validateChartV2, type ChartV2Definition, type ChartV2Result } from "@/lib/chart-v2";
 import { chartOrganizations } from "@/lib/chart-v2-datasets";
+import type { ChartVisibility } from "@/lib/chart-snapshot";
+import { surveySnapshot } from "@/lib/chart-snapshot";
 
 async function actorId() {
   const supabase = await createClient();
@@ -26,29 +28,34 @@ export async function previewSurveyChart(input: ChartV2Definition): Promise<{ re
   }
 }
 
-export async function saveSurveyChart(name: string, input: ChartV2Definition, chartId?: string): Promise<{ chartId: string } | { error: string }> {
+export async function saveSurveyChart(name: string, input: ChartV2Definition, chartId?: string, visibility?: ChartVisibility): Promise<{ chartId: string } | { error: string }> {
   await requireCatalogAccess("graficas");
   const userId = await actorId();
   try {
     const definition = validateChartV2(input);
     if (typeof name !== "string" || name.trim().length < 1 || name.trim().length > 160) return { error: "Escribe un nombre de hasta 160 caracteres." };
     const { detail } = await surveyChartContext(definition.source.instrumentId, definition.source.versionId);
-    await analyzeSurveyChart(definition);
+    const result = await analyzeSurveyChart(definition);
+    let preview: string | null = null;
+    try { preview = JSON.stringify(surveySnapshot(definition, result)); } catch { /* la vista previa no bloquea el guardado */ }
     if (chartId) {
       const updated = await insightDb().query(`update insight_core.core_charts
-        set name = $1, definition_json = $2::jsonb, updated_at = now()
-        where id = $3 and organization_id = $4 and created_by = $5 and source_kind = 'survey'
-        returning id`, [name.trim(), JSON.stringify(definition), chartId, detail.survey.organization_id, userId]);
-      if (!updated.rowCount) return { error: "Gráfica no encontrada o sin permiso para editar." };
+        set name = $1, definition_json = $2::jsonb, preview_json = $6::jsonb, preview_updated_at = now(), updated_at = now(),
+          source_kind = 'survey', source_id = $7, source_version_id = $8
+        where id = $3 and organization_id = $4 and created_by = $5
+        returning id`, [name.trim(), JSON.stringify(definition), chartId, detail.survey.organization_id, userId, preview,
+          definition.source.instrumentId, definition.source.versionId]);
+      if (!updated.rowCount) return { error: "Gráfica no encontrada, sin permiso o con una fuente de otra organización." };
       revalidatePath(`/charts/survey/${chartId}`);
+      revalidatePath(`/charts/dataset/${chartId}`);
       revalidatePath("/charts");
       return { chartId };
     }
     const created = await insightDb().query(`insert into insight_core.core_charts
-      (organization_id, source_kind, source_id, source_version_id, name, definition_json, created_by)
-      values ($1, 'survey', $2, $3, $4, $5::jsonb, $6) returning id`,
+      (organization_id, source_kind, source_id, source_version_id, name, definition_json, created_by, preview_json, preview_updated_at, visibility)
+      values ($1, 'survey', $2, $3, $4, $5::jsonb, $6, $7::jsonb, now(), $8) returning id`,
       [detail.survey.organization_id, definition.source.instrumentId, definition.source.versionId,
-        name.trim(), JSON.stringify(definition), userId]);
+        name.trim(), JSON.stringify(definition), userId, preview, visibility === "organization" ? "organization" : "private"]);
     revalidatePath("/charts");
     return { chartId: created.rows[0].id };
   } catch (error) {

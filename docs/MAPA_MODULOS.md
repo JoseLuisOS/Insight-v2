@@ -12,7 +12,7 @@
 | Datasets | [datasets](modulos/datasets.md) | v1 | `src/lib/datasets.ts` | ingestión CSV, políticas de fila |
 | Fuentes externas | [fuentes](modulos/fuentes.md) | v1 | `src/app/(app)/sources/` | conexiones, Edge `import-external` |
 | SQL y consultas | [sql](modulos/sql.md) | v1 | `src/app/(app)/sql/actions.ts` | SQL Lab, query builder |
-| Gráficas, mapas, métricas | [visualizacion](modulos/visualizacion.md) | v1 + v2 | `src/lib/charts.ts`, `src/lib/insight-charts.ts` | ECharts, Gráficas v2, temas |
+| Gráficas, mapas, métricas | [visualizacion](modulos/visualizacion.md) | v1 + v2 | `src/lib/charts.ts`, `src/lib/insight-charts.ts` | ECharts, Gráficas v2, editor único, galería, compartidas, instantáneas, temas |
 | Dashboards | [dashboards](modulos/dashboards.md) | v1 + v2 | `src/lib/dashboards.ts` | layout, filtros, dashboards v2 |
 | Publicación | [publicacion](modulos/publicacion.md) | v1 | `src/app/p/[token]/page.tsx` | embeds, contraseña |
 | Usuarios | [usuarios](modulos/usuarios.md) | v2 | `src/components/insight/users-manager.tsx` | membresías, invitaciones |

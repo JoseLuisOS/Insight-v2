@@ -8,7 +8,7 @@ Para las relaciones implementadas de Encuestas y su lectura analítica, consulta
 
 Documento extenso (≈42 KB): **no lo leas completo**. Ubica la sección con `rg -n "^#{1,2} " docs/ARQUITECTURA_BBDD.md` y léela con `offset`/`limit`.
 
-- **Qué existe hoy en la base:** «Estado aplicado de la base de datos» (schemas, tablas, RPC, roles de conexión) y «Gráficas v2: base aplicada» (migraciones 024–028).
+- **Qué existe hoy en la base:** «Estado aplicado de la base de datos» (schemas, tablas, RPC, roles de conexión) y «Gráficas v2: base aplicada» (migraciones 024–029).
 - **Organizaciones y usuarios:** §1 Separación conceptual, §2 Estructura superior, §3 `core_organizations`, §4 Usuarios, §6 Memberships.
 - **Sysadmin y roles administrativos:** §5 Sysadmin, §26 Roles administrativos.
 - **Roles y permisos:** §7 Roles, §8 Membership ↔ Roles, §9 Catálogo de módulos, §10 Permisos, §11 Role Permissions, §12 Overrides por usuario, §13 Resolución de permisos, §29 Modelo de autorización resultante.
@@ -30,6 +30,8 @@ La inspección de PostgreSQL del 2026-10-06 con el rol `insight_app` confirmó q
 [`scripts/026_chart_maps_v2.sql`](../scripts/026_chart_maps_v2.sql) se aplicó y verificó el 2026-10-06. `core_chart_maps` conserva GeoJSON por organización y creador; tiene RLS y no concede lectura directa a `authenticated`. [`scripts/027_dashboards_v2.sql`](../scripts/027_dashboards_v2.sql) también se aplicó y verificó ese día: `core_dashboards`, `core_dashboard_items` y `core_dashboard_publications` comparten `organization_id`; las FK compuestas impiden vincular una gráfica de otra organización. Las tres tablas tienen RLS y no conceden lectura directa a `authenticated`. Los snapshots públicos solo se leen por token desde el servidor.
 
 [`scripts/028_dashboard_layouts_v2.sql`](../scripts/028_dashboard_layouts_v2.sql) se aplicó y verificó el 2026-10-06; `core_dashboard_items.layout_json` guarda posición y tamaño de cada tarjeta como objeto JSONB. La app valida rangos y propiedad del dashboard antes de actualizarlo.
+
+[`scripts/029_chart_gallery.sql`](../scripts/029_chart_gallery.sql) se aplicó y verificó el 2026-10-07 como `insight_app` sobre `insight_core.core_charts`. Añade `visibility text not null default 'private'` (check `private` | `organization`), `preview_json jsonb` (objeto o null) y `preview_updated_at timestamptz`, además del índice parcial `core_charts_org_shared_idx (organization_id, updated_at desc) where visibility = 'organization'`. `preview_json` guarda la instantánea agregada de la gráfica que usan la galería y la vista compartida; no contiene filas completas, solo lo que la gráfica dibuja (dispersiones muestreadas).
 
 El usuario aclaró que se deben conservar **las capacidades de Gráficas v1 para contenido nuevo**, sin migrar datos ni gráficas guardadas de otra base. La ausencia de tablas `public` v1 en la conexión actual implica que el código histórico no basta para satisfacer esa continuidad aquí. Los flujos nuevos de dataset plano, gráfica, dashboard y publicación ya usan `insight_core` por organización; SQL Lab y conectores externos siguen en v1 y requieren adaptación propia, sin recrear `tenants` como modelo objetivo.
 

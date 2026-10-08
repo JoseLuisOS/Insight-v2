@@ -32,7 +32,12 @@ El grupo `(app)` no forma parte de las URLs públicas.
 | `/sql` | `src/app/(app)/sql/page.tsx` | SQL Lab | v1 |
 | `/query/new` | `src/app/(app)/query/new/page.tsx` | Constructor de consultas | v1 |
 | `/metrics` | `src/app/(app)/metrics/page.tsx` | Métricas | v1 |
-| `/charts`, `/charts/new`, `/charts/[id]`, `/charts/[id]/edit` | `src/app/(app)/charts/` | Gráficas | v1 |
+| `/charts` | `src/app/(app)/charts/page.tsx` | Galería de Gráficas (propias y compartidas) | v2 |
+| `/charts/view/[id]` | `src/app/(app)/charts/view/[id]/page.tsx` | Gráfica compartida de solo lectura | v2 |
+| `/charts/new` | `src/app/(app)/charts/new/page.tsx` | Editor único: nueva gráfica con fuente por defecto | v2 |
+| `/charts/survey/[id]` | `src/app/(app)/charts/survey/[id]/page.tsx` | Editor único: editar gráfica | v2 |
+| `/charts/dataset/[id]` | `src/app/(app)/charts/dataset/[id]/page.tsx` | Editor único: editar gráfica | v2 |
+| `/charts/[id]`, `/charts/[id]/edit` | `src/app/(app)/charts/` | Gráficas heredadas | v1 |
 | `/dashboards`, `/dashboards/[id]`, `/dashboards/[id]/edit` | `src/app/(app)/dashboards/` | Dashboards | v1 |
 | `/maps` | `src/app/(app)/maps/page.tsx` | Mapas | v1 |
 | `/themes` | `src/app/(app)/themes/page.tsx` | Temas | v1 |

@@ -90,6 +90,7 @@ El **protocolo de lectura de `AGENTS.md`** es obligatorio para el líder y para 
 ### Entorno local
 - El servidor de desarrollo del usuario (`dev_local.py`, puerto 4102) es suyo: no lo detengas ni lo reinicies. Para comparar, usa otro puerto con `INSIGHT_DIST_DIR` distinto, apágalo al terminar y revierte cualquier cambio que Next haga en `tsconfig.json`.
 - No ejecutes pruebas largas ni builds si el usuario no lo pidió; tsc y eslint focalizados sí.
+- Verificación visual con la CLI `agent-browser` (usa Edge vía `AGENT_BROWSER_EXECUTABLE_PATH`), delegada al `insight-verificador`; nunca la extensión de Chrome. Úsala solo si hay dudas reales de visualización o si el usuario la pide; por defecto el usuario revisa la interfaz. Redirige su salida a un archivo (`agent-browser open <url> > f.txt 2>&1 < /dev/null`) y nunca con tubería (`| tail`): el proceso de fondo hereda la tubería y el comando no termina. Comandos útiles: `open`, `get title`, `snapshot -i`, `screenshot`, `close`.
 
 ## Terminado significa
 

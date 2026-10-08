@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ChartRenderer } from "@/components/chart-renderer";
 import { saveChart, updateChart } from "@/app/(app)/charts/actions";
-import { saveCoreDatasetChart } from "@/app/(app)/charts/dataset/actions";
 import {
   PRESET_PALETTES,
   type Aggregation,
@@ -45,7 +44,6 @@ export function ChartEditor({
   chartId,
   initialName,
   initialConfig,
-  coreDataset = false,
 }: {
   datasetId: string;
   datasetName: string;
@@ -58,7 +56,6 @@ export function ChartEditor({
   chartId?: string;
   initialName?: string;
   initialConfig?: ChartConfig;
-  coreDataset?: boolean;
 }) {
   const router = useRouter();
   const palettes: Record<string, string[]> = {
@@ -91,16 +88,14 @@ export function ChartEditor({
   function save() {
     setError(null);
     startSave(async () => {
-      const res = coreDataset
-        ? await saveCoreDatasetChart(datasetId, name, config, chartId)
-        : chartId
-          ? await updateChart(chartId, name, config)
-          : await saveChart(datasetId, name, config);
+      const res = chartId
+        ? await updateChart(chartId, name, config)
+        : await saveChart(datasetId, name, config);
       if ("error" in res) {
         setError(res.error);
         return;
       }
-      router.push(coreDataset ? `/charts/dataset/${res.chartId}` : `/charts/${res.chartId}`);
+      router.push(`/charts/${res.chartId}`);
     });
   }
 
@@ -120,7 +115,7 @@ export function ChartEditor({
         <div>
           <label className="mb-1 block text-sm font-medium">Tipo</label>
           <div className="grid grid-cols-3 gap-1">
-            {CHART_TYPES.filter((t) => coreDataset || !["scatter", "histogram", "boxplot"].includes(t.value)).map((t) => (
+            {CHART_TYPES.filter((t) => !["scatter", "histogram", "boxplot"].includes(t.value)).map((t) => (
               <button
                 key={t.value}
                 onClick={() => set({ type: t.value })}

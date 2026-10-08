@@ -28,6 +28,7 @@ No recorras todo `docs/` por rutina. Busca el término en este índice o en el m
 | [BITACORA.md](BITACORA.md) | Motivos y resultados de cambios del mes en curso; meses anteriores en [`bitacora/`](bitacora/). |
 | [ENTREVISTA_GRAFICAS_V2.md](ENTREVISTA_GRAFICAS_V2.md) | Respuestas originales y aclaraciones cerradas para Gráficas v2. |
 | [ESPECIFICACION_GRAFICAS_V2.md](ESPECIFICACION_GRAFICAS_V2.md) | Alcance inicial y propuesta de arquitectura del catálogo, fuentes y motores de Gráficas v2. |
+| [PLAN_GRAFICAS_MULTIFUENTE.md](PLAN_GRAFICAS_MULTIFUENTE.md) | Plan aprobado por fases: editor único, panel Fuentes en cascada, tipos con miniatura y modos Comparar/Capas/Unir. Punto de partida para retomar Gráficas. |
 | [PENDIENTES.md](PENDIENTES.md) | Ideas diferidas registradas cuando el usuario lo solicita; no son alcance aprobado. |
 
 ## Encuestas: operación y antecedentes

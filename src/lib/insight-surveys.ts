@@ -177,7 +177,7 @@ export async function canViewSurveyResource(actor: { userId: string; admin: bool
   return rows[0].access_mode === "organization" || rows.some((row) => row.effect === "allow");
 }
 
-async function visibleSurveyResources(actor: { userId: string; admin: boolean }, instruments: { id: string; organization_id: string }[]): Promise<boolean[]> {
+export async function visibleSurveyResources(actor: { userId: string; admin: boolean }, instruments: { id: string; organization_id: string }[]): Promise<boolean[]> {
   if (actor.admin || !instruments.length) return instruments.map(() => true);
   const rows = await queryRows<{ id: string; organization_id: string; access_mode: string; effect: string | null }>(`select r.domain_resource_id as id,
     r.organization_id, r.access_mode, grant_effect.effect

@@ -640,3 +640,27 @@ Entradas del mes en curso; agrega las nuevas al final leyendo solo las últimas 
   - Ubicar un módulo exigía cargar ~58 KB de mapa y las skills se activaban juntas aunque la tarea solo necesitara una.
 - **¿Para qué?**
   - Que cada tarea lea un índice y una ficha, cargue solo las skills pertinentes y deje el razonamiento al modelo principal.
+
+## 2026-10-07 — Galería de Gráficas y Dashboards
+
+- **¿Qué?**
+  - `/charts` pasó a galería con miniaturas reales, propias y compartidas por la organización, con búsqueda, filtros, orden, vista cuadrícula/lista y acciones por tarjeta (abrir, duplicar, compartir, actualizar vista previa, eliminar).
+  - Nueva ruta `/charts/view/[id]` de solo lectura para gráficas compartidas, con «Duplicar en mis gráficas»; un único «Nueva gráfica» abre el diálogo de fuente.
+  - `/dashboards` pasó a galería con miniaturas de composición y diálogo «Nuevo dashboard».
+  - Migración `029_chart_gallery.sql` aplicada en `insight_core.core_charts`: visibilidad `private`/`organization`, `preview_json` y `preview_updated_at`, con índice parcial para compartidas.
+- **¿Por qué?**
+  - La portada solo mostraba títulos y botones de fuente redundantes, y no había forma de ver las gráficas del equipo.
+- **¿Para qué?**
+  - Descubrir y reutilizar visualizaciones como en las herramientas de BI, y compartir dentro de la organización sin exponer filas completas: solo lo que la gráfica dibuja.
+
+## 2026-10-07 — Gráficas: editor único y panel Fuentes (Fase 1)
+
+- **¿Qué?**
+  - `/charts/new` abre el editor único `ChartStudio` con fuente por defecto; «Nueva gráfica» ya no abre diálogo. `/charts/survey/[id]` y `/charts/dataset/[id]` usan el mismo editor.
+  - Panel Fuentes como primera sección (fuente plegada en una línea, cascada Estudio → Instrumento → Versión o Dataset) y selector de tipos con miniaturas; los tipos no admitidos quedan deshabilitados con su motivo.
+  - Se retiraron `survey-chart-studio.tsx`, el modo Dataset de `chart-editor.tsx`, `/charts/survey/new`, `/charts/dataset/new` y el diálogo de origen de datos. Verificado con tsc y eslint.
+  - Se puede cambiar la fuente de una gráfica existente, incluido Encuesta↔Dataset, dentro de la misma organización.
+- **¿Por qué?**
+  - Decisión del usuario: un solo editor para crear y editar, y menos pasos para crear una gráfica.
+- **¿Para qué?**
+  - Dejar la base para gráficas multifuente (Fase 2: motor común y modo Comparar).

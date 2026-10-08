@@ -1,87 +1,43 @@
 import Link from "next/link";
-import { ChartEditor } from "@/components/chart-editor";
-import { fetchDatasetData } from "@/lib/datasets";
-import { createClient } from "@/lib/supabase/server";
+import { unstable_rethrow } from "next/navigation";
+import { listChartSourceCatalog, loadChartSourceData } from "@/lib/chart-sources";
+import { defaultSourceRef, findCatalogSource, type ChartSourceRef } from "@/lib/chart-studio";
+import { ChartStudio } from "@/components/charts/chart-studio";
 
-export default async function NewChartPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ dataset?: string }>;
+export const metadata = { title: "Gráficas · Nueva gráfica · Intersel Insight" };
+
+export default async function NewChartPage({ searchParams }: {
+  searchParams: Promise<{ dataset?: string; instrument?: string; version?: string }>;
 }) {
-  const { dataset } = await searchParams;
-  const supabase = await createClient();
-
-  if (!dataset) {
-    return (
-      <div className="mx-auto max-w-3xl">
-        <h1 className="text-2xl font-semibold text-foreground">Nueva gráfica</h1>
-        <p className="mt-1 text-muted-foreground">Elige la fuente de datos para empezar.</p>
-        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Link href="/charts/survey/new" className="rounded-xl border border-border bg-card p-5 transition hover:border-primary">
-            <div className="font-medium text-card-foreground">Encuestas</div><div className="mt-1 text-sm text-muted-foreground">Analiza preguntas, cruces, distribuciones y estadística por versión.</div>
-          </Link>
-          <Link href="/charts/dataset/new" className="rounded-xl border border-border bg-card p-5 transition hover:border-primary">
-            <div className="font-medium text-card-foreground">Datasets</div><div className="mt-1 text-sm text-muted-foreground">Crea gráficas con datos tabulares nuevos o ya cargados.</div>
-          </Link>
-        </div>
-      </div>
-    );
+  const { dataset, instrument, version } = await searchParams;
+  const catalog = await listChartSourceCatalog();
+  let ref: ChartSourceRef | null = null;
+  if (dataset) {
+    const candidate: ChartSourceRef = { kind: "dataset", datasetId: dataset };
+    if (findCatalogSource(catalog, candidate)) ref = candidate;
   }
-
-  const { data: themesData } = await supabase
-    .from("themes")
-    .select("name, config_json")
-    .order("created_at", { ascending: false });
-  const themes = (
-    (themesData as { name: string; config_json: { palette?: string[] } }[] | null) ?? []
-  ).map((t) => ({ name: t.name, palette: t.config_json.palette ?? [] }));
-
-  const { data: metricsData } = await supabase
-    .from("metrics")
-    .select("id, name, column_key, agg")
-    .eq("dataset_id", dataset);
-  const metrics =
-    (metricsData as { id: string; name: string; column_key: string; agg: string }[] | null) ?? [];
-
-  const { data: mapsData } = await supabase
-    .from("maps")
-    .select("id, name, name_property, geojson")
-    .order("created_at", { ascending: false });
-  const maps =
-    (mapsData as { id: string; name: string; name_property: string; geojson: object }[] | null) ?? [];
-
-  const data = await fetchDatasetData(dataset, 5000);
-  if (!data) {
-    return (
-      <div className="mx-auto max-w-3xl">
-        <p className="text-sm text-danger">Dataset no encontrado.</p>
-      </div>
-    );
+  if (!ref && instrument) {
+    const withVersion: ChartSourceRef = { kind: "survey", instrumentId: instrument, versionId: version };
+    if (version && findCatalogSource(catalog, withVersion)) ref = withVersion;
+    else {
+      const candidate: ChartSourceRef = { kind: "survey", instrumentId: instrument };
+      if (findCatalogSource(catalog, candidate)) ref = candidate;
+    }
   }
-
-  return (
-    <div className="mx-auto max-w-6xl">
-      <div className="mb-6">
-        <Link href="/charts" className="text-sm text-primary hover:underline">
-          ← Gráficas
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">Nueva gráfica</h1>
-      </div>
-      {data.error ? (
-        <pre className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">
-          {data.error}
-        </pre>
-      ) : (
-        <ChartEditor
-          datasetId={data.id}
-          datasetName={data.name}
-          columns={data.columns}
-          rows={data.rows}
-          themes={themes}
-          metrics={metrics}
-          maps={maps}
-        />
-      )}
-    </div>
-  );
+  ref ??= defaultSourceRef(catalog);
+  let initialSource: Awaited<ReturnType<typeof loadChartSourceData>> | null = null;
+  let loadError = "";
+  if (ref) {
+    try { initialSource = await loadChartSourceData(ref); }
+    catch (error) {
+      unstable_rethrow(error);
+      loadError = "No se pudo cargar la fuente por defecto. Elige otra en el panel Fuentes.";
+    }
+  }
+  return <div className="w-full px-1 pb-8">
+    <div className="mb-5"><Link href="/charts" className="text-sm text-primary hover:underline">← Gráficas</Link>
+      <h1 className="mt-2 text-2xl font-semibold">Nueva gráfica</h1>
+      {loadError && <p role="alert" className="mt-2 rounded-md bg-danger/10 p-3 text-sm text-danger">{loadError}</p>}</div>
+    <ChartStudio catalog={catalog} initialSource={initialSource} initialRef={ref} />
+  </div>;
 }

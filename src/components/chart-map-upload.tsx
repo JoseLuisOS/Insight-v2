@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function ChartMapUpload({ organizationId }: { organizationId: string }) {
+export function ChartMapUpload({ organizationId, onUploaded }: { organizationId: string; onUploaded?: () => void }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [nameProperty, setNameProperty] = useState("name");
@@ -22,7 +22,8 @@ export function ChartMapUpload({ organizationId }: { organizationId: string }) {
       const response = await fetch("/api/charts/maps", { method: "POST", body: form });
       const body = await response.json().catch(() => ({ error: "El servidor rechazó el mapa. Comprueba que mida hasta 4 MB." }));
       if (!response.ok) throw new Error(body.error || "No se pudo cargar el mapa.");
-      setName(""); setFile(null); router.refresh();
+      setName(""); setFile(null);
+      if (onUploaded) onUploaded(); else router.refresh();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "No se pudo cargar el mapa."); }
     finally { setBusy(false); }
   };
